@@ -1,0 +1,290 @@
+/* Pretendard variable dynamic-subset — 한글 unicode-range별 woff2 조각만 내려받는다.
+   next/font/local은 서브셋 파일이 수백 개라 부적합해 CSS import를 쓴다. */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-heading: var(--font-sans);
+
+  /* ── 타입 스케일 ──────────────────────────────────────────────
+     한글은 라틴보다 크게 잡아야 읽힌다. 본문 15px 기준, 금액은 별도 3단. */
+  --text-display: 2rem; /* 32 */
+  --text-display--line-height: 1.15;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-title: 1.25rem; /* 20 */
+  --text-title--line-height: 1.3;
+  --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.02em;
+
+  --text-section: 1rem; /* 16 */
+  --text-section--line-height: 1.4;
+  --text-section--font-weight: 600;
+  --text-section--letter-spacing: -0.01em;
+
+  --text-body: 0.9375rem; /* 15 */
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 400;
+  --text-body--letter-spacing: -0.01em;
+
+  --text-body-sm: 0.8125rem; /* 13 */
+  --text-body-sm--line-height: 1.45;
+  --text-body-sm--font-weight: 400;
+
+  --text-caption: 0.75rem; /* 12 */
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 500;
+
+  --text-money-lg: 1.5rem; /* 24 */
+  --text-money-lg--line-height: 1.2;
+  --text-money-lg--font-weight: 700;
+  --text-money-lg--letter-spacing: -0.02em;
+
+  --text-money-md: 1.0625rem; /* 17 */
+  --text-money-md--line-height: 1.3;
+  --text-money-md--font-weight: 600;
+  --text-money-md--letter-spacing: -0.01em;
+
+  --text-money-sm: 0.9375rem; /* 15 */
+  --text-money-sm--line-height: 1.3;
+  --text-money-sm--font-weight: 500;
+  --text-money-sm--letter-spacing: -0.01em;
+
+  /* ── shadcn 표준 토큰 ── */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ── 앱 고유 토큰 ──────────────────────────────────────────────
+     -soft = 면(배경), 기본 = 테두리·아이콘·막대, -strong = 본문 텍스트.
+     기본값 몇 개는 흰 배경에서 WCAG AA(4.5:1)에 못 미쳐 텍스트로 쓰면 안 된다.
+     대비비는 /design 페이지에 표로 정리해 두었다. */
+  --color-primary-soft: var(--primary-soft);
+
+  --color-warning: var(--warning);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-soft: var(--warning-soft);
+
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+
+  --color-payer-groom: var(--payer-groom);
+  --color-payer-groom-strong: var(--payer-groom-strong);
+  --color-payer-groom-soft: var(--payer-groom-soft);
+
+  --color-payer-bride: var(--payer-bride);
+  --color-payer-bride-strong: var(--payer-bride-strong);
+  --color-payer-bride-soft: var(--payer-bride-soft);
+
+  --color-payer-joint: var(--payer-joint);
+  --color-payer-joint-strong: var(--payer-joint-strong);
+  --color-payer-joint-soft: var(--payer-joint-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.75rem; /* 12px — 버튼·입력. 카드는 rounded-[14px]를 직접 쓴다. */
+
+  --background: #f6f5f6;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #e11d48; /* 로즈. 흰 배경 4.70:1 — 본문 텍스트로도 통과 */
+  --primary-foreground: #ffffff;
+  --primary-soft: #fff1f3;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a; /* 4.83:1 */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #e11d48;
+
+  --border: #eae7e9;
+  --input: #eae7e9;
+  --ring: #e11d48;
+
+  --warning: #d97706; /* 3.18:1 — 면·아이콘 전용 */
+  --warning-strong: #b45309; /* 5.02:1 — 텍스트용 */
+  --warning-soft: #fffbeb;
+
+  --success: #059669; /* 3.77:1 — 면·막대 전용 */
+  --success-strong: #047857; /* 5.48:1 — 텍스트용 */
+  --success-soft: #ecfdf5;
+
+  --payer-groom: #0ea5e9; /* 2.77:1 — 점·막대 전용 */
+  --payer-groom-strong: #0369a1; /* 5.93:1 — 텍스트용 */
+  --payer-groom-soft: #f0f9ff;
+  --payer-bride: #e11d48;
+  --payer-bride-strong: #e11d48;
+  --payer-bride-soft: #fff1f3;
+  --payer-joint: #71717a;
+  --payer-joint-strong: #71717a;
+  --payer-joint-soft: #f4f4f5;
+
+  --chart-1: #e11d48; /* 결혼식 */
+  --chart-2: #f59e0b; /* 신혼여행 */
+  --chart-3: #0ea5e9; /* 혼수 */
+  --chart-4: #10b981; /* 신혼집 */
+  --chart-5: #8b5cf6; /* 기타 */
+
+  /* 예상 지출 사선 패턴의 색. primary를 card 위에 4% / 34%로 미리 섞어 둔 값이다.
+     여기서 color-mix()를 쓰면 Tailwind가 자동으로 다는 폴백이 `var(--primary)`가 되어,
+     color-mix 미지원 브라우저에서 4% 틴트가 100% 불투명 줄무늬로 뒤집힌다. */
+  --estimate-tint: #fef6f8;
+  --estimate-stripe: #f5b2c1;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #e11d48;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #eae7e9;
+  --sidebar-ring: #e11d48;
+}
+
+/* 토글(next-themes)은 P6에 붙이지만, 화면마다 색을 다시 뒤지는 일을 막기 위해
+   대응값은 지금 정의해 둔다. 단순 반전이 아니라 어두운 바탕에서의 대비를 따로 잡았다. */
+.dark {
+  --background: #0f0e10;
+  --foreground: #f4f2f3;
+  --card: #1a181b;
+  --card-foreground: #f4f2f3;
+  --popover: #1a181b;
+  --popover-foreground: #f4f2f3;
+
+  --primary: #fb7185; /* 카드(#1A181B) 대비 6.55:1 */
+  --primary-foreground: #1a0a0e;
+  --primary-soft: #2a1319;
+
+  --secondary: #26242a;
+  --secondary-foreground: #f4f2f3;
+  --muted: #26242a;
+  --muted-foreground: #a1999d;
+  --accent: #26242a;
+  --accent-foreground: #f4f2f3;
+  --destructive: #fb7185;
+
+  --border: #2a272b;
+  --input: #2a272b;
+  --ring: #fb7185;
+
+  --warning: #fbbf24;
+  --warning-strong: #fbbf24;
+  --warning-soft: #2a200d;
+
+  --success: #34d399;
+  --success-strong: #34d399;
+  --success-soft: #0e241c;
+
+  --payer-groom: #38bdf8;
+  --payer-groom-strong: #38bdf8;
+  --payer-groom-soft: #0c2130;
+  --payer-bride: #fb7185;
+  --payer-bride-strong: #fb7185;
+  --payer-bride-soft: #2a1319;
+  --payer-joint: #a1a1aa;
+  --payer-joint-strong: #a1a1aa;
+  --payer-joint-soft: #26242a;
+
+  --chart-1: #fb7185;
+  --chart-2: #fbbf24;
+  --chart-3: #38bdf8;
+  --chart-4: #34d399;
+  --chart-5: #a78bfa;
+
+  --estimate-tint: #231c1f;
+  --estimate-stripe: #66363f;
+
+  --sidebar: #1a181b;
+  --sidebar-foreground: #f4f2f3;
+  --sidebar-primary: #fb7185;
+  --sidebar-primary-foreground: #1a0a0e;
+  --sidebar-accent: #26242a;
+  --sidebar-accent-foreground: #f4f2f3;
+  --sidebar-border: #2a272b;
+  --sidebar-ring: #fb7185;
+}
+
+/* 금액·수량은 전부 이 유틸을 거친다. Pretendard가 tnum을 지원하므로
+   별도 모노 폰트 없이 리스트에서 자릿수가 정렬된다. */
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 예상 지출(날짜 미정) 표식. 색맹 사용자를 위해 색이 아니라 패턴으로 구분한다. */
+@utility hatch-estimate {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 9px,
+    var(--estimate-tint) 9px 18px
+  );
+}
+
+@utility hatch-estimate-strong {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--estimate-stripe) 0 3px,
+    transparent 3px 7px
+  );
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    /* 한글이 단어 중간에서 끊기는 것을 막는다. 긴 URL은 예외적으로 흘려보낸다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  body {
+    @apply bg-background text-foreground text-body;
+  }
+}

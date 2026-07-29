@@ -1,0 +1,2326 @@
+<title>웨딩 가계부 — 디자인 시안 (Phase PD)</title>
+
+<style>
+/* ============================================================
+   BOARD SHELL — 시안을 얹는 배경. 앱 UI와 토큰을 완전히 분리한다.
+   ============================================================ */
+:root {
+  --b-bg:        #F7F4F5;
+  --b-bg-2:      #FFFFFF;
+  --b-line:      #E4DBDE;
+  --b-line-soft: #EFE8EA;
+  --b-ink:       #1C1418;
+  --b-ink-2:     #6B5F63;
+  --b-ink-3:     #948A8D;
+  --b-accent:    #E11D48;
+  --b-shadow:    0 1px 2px rgba(28,20,24,.05), 0 12px 32px -12px rgba(28,20,24,.16);
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --kr: -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
+        "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --b-bg:        #141013;
+    --b-bg-2:      #1D181B;
+    --b-line:      #2E2629;
+    --b-line-soft: #241E21;
+    --b-ink:       #F2ECEE;
+    --b-ink-2:     #A2969A;
+    --b-ink-3:     #7C7175;
+    --b-accent:    #FB7185;
+    --b-shadow:    0 1px 2px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --b-bg:        #141013;
+  --b-bg-2:      #1D181B;
+  --b-line:      #2E2629;
+  --b-line-soft: #241E21;
+  --b-ink:       #F2ECEE;
+  --b-ink-2:     #A2969A;
+  --b-ink-3:     #7C7175;
+  --b-accent:    #FB7185;
+  --b-shadow:    0 1px 2px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
+}
+:root[data-theme="light"] {
+  --b-bg:        #F7F4F5;
+  --b-bg-2:      #FFFFFF;
+  --b-line:      #E4DBDE;
+  --b-line-soft: #EFE8EA;
+  --b-ink:       #1C1418;
+  --b-ink-2:     #6B5F63;
+  --b-ink-3:     #948A8D;
+  --b-accent:    #E11D48;
+  --b-shadow:    0 1px 2px rgba(28,20,24,.05), 0 12px 32px -12px rgba(28,20,24,.16);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--b-bg);
+  color: var(--b-ink);
+  font-family: var(--kr);
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: keep-all;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+/* --- board typography --- */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--b-ink-3);
+}
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 56px;
+  scroll-margin-top: 24px;
+}
+.sec-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--b-line);
+}
+.sec-head h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+.sec-head p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--b-ink-2);
+  font-size: 14px;
+}
+.sec-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  color: var(--b-accent);
+}
+
+/* --- masthead --- */
+.mast {
+  padding: 72px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.mast h1 {
+  margin: 0;
+  font-size: clamp(30px, 5.2vw, 46px);
+  line-height: 1.12;
+  letter-spacing: -.035em;
+  font-weight: 800;
+  text-wrap: balance;
+}
+.mast h1 em {
+  font-style: normal;
+  color: var(--b-accent);
+}
+.mast .lede {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 16px;
+  color: var(--b-ink-2);
+}
+.mast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding-top: 4px;
+}
+.chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  padding: 5px 10px;
+  border: 1px solid var(--b-line);
+  border-radius: 999px;
+  background: var(--b-bg-2);
+  color: var(--b-ink-2);
+  white-space: nowrap;
+}
+.chip b { color: var(--b-ink); font-weight: 600; }
+
+/* --- note / callout --- */
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--b-bg-2);
+  border: 1px solid var(--b-line);
+  border-left: 3px solid var(--b-ink-3);
+  font-size: 13.5px;
+  color: var(--b-ink-2);
+  max-width: 78ch;
+}
+.note.flag { border-left-color: var(--b-accent); }
+.note strong { color: var(--b-ink); font-weight: 650; }
+.note code {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--b-line-soft);
+  color: var(--b-ink);
+}
+
+/* --- token tables --- */
+.tbl-scroll { overflow-x: auto; border: 1px solid var(--b-line); border-radius: 10px; background: var(--b-bg-2); }
+table.tokens {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+table.tokens th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--b-ink-3);
+  font-weight: 500;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--b-line);
+  white-space: nowrap;
+}
+table.tokens td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--b-line-soft);
+  vertical-align: middle;
+  color: var(--b-ink-2);
+}
+table.tokens tr:last-child td { border-bottom: 0; }
+table.tokens td.name { color: var(--b-ink); font-weight: 600; white-space: nowrap; }
+table.tokens td.hex { font-family: var(--mono); font-size: 12px; color: var(--b-ink); white-space: nowrap; }
+table.tokens td.ratio { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.sw {
+  width: 34px; height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(0,0,0,.12);
+  display: inline-block;
+  vertical-align: middle;
+}
+.pass { color: #047857; font-weight: 700; }
+.fail { color: #B45309; font-weight: 700; }
+@media (prefers-color-scheme: dark) { .pass { color: #34D399; } .fail { color: #FBBF24; } }
+:root[data-theme="dark"] .pass { color: #34D399; }
+:root[data-theme="dark"] .fail { color: #FBBF24; }
+:root[data-theme="light"] .pass { color: #047857; }
+:root[data-theme="light"] .fail { color: #B45309; }
+
+/* --- type scale specimen --- */
+.scale {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--b-line);
+  border-radius: 10px;
+  background: var(--b-bg-2);
+  overflow: hidden;
+}
+.scale-row {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 18px;
+  align-items: baseline;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--b-line-soft);
+}
+.scale-row:last-child { border-bottom: 0; }
+.scale-row .spec {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--b-ink-3);
+}
+.scale-row .spec b { display: block; color: var(--b-accent); font-weight: 600; letter-spacing: .04em; }
+.scale-row .demo { color: var(--b-ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 620px) { .scale-row { grid-template-columns: 1fr; gap: 4px; } }
+
+.t-display  { font-size: 32px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
+.t-title    { font-size: 20px; line-height: 1.30; font-weight: 600; letter-spacing: -.02em; }
+.t-section  { font-size: 16px; line-height: 1.40; font-weight: 600; letter-spacing: -.01em; }
+.t-body     { font-size: 15px; line-height: 1.55; font-weight: 400; letter-spacing: -.01em; }
+.t-bodysm   { font-size: 13px; line-height: 1.45; font-weight: 400; }
+.t-caption  { font-size: 12px; line-height: 1.40; font-weight: 500; }
+.t-moneylg  { font-size: 24px; line-height: 1.20; font-weight: 700; letter-spacing: -.02em; }
+.t-moneymd  { font-size: 17px; line-height: 1.30; font-weight: 600; letter-spacing: -.01em; }
+.t-moneysm  { font-size: 15px; line-height: 1.30; font-weight: 500; letter-spacing: -.01em; }
+
+/* --- density ruler --- */
+.density {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--b-line);
+  border-radius: 10px;
+  background: var(--b-bg-2);
+  align-items: flex-end;
+}
+.dbox { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.dbox .cap { font-family: var(--mono); font-size: 10.5px; color: var(--b-ink-3); letter-spacing: .06em; }
+.dbar {
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: #fff; background: var(--b-accent);
+  padding: 0 14px;
+}
+.dbar.old { background: var(--b-ink-3); }
+
+/* --- frame board --- */
+.frames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px 32px;
+  align-items: flex-start;
+}
+.fwrap { display: flex; flex-direction: column; gap: 12px; width: 375px; max-width: 100%; }
+.fcap { display: flex; flex-direction: column; gap: 3px; }
+.fcap .t { font-size: 15px; font-weight: 650; letter-spacing: -.01em; color: var(--b-ink); }
+.fcap .d { font-size: 12.5px; color: var(--b-ink-2); line-height: 1.5; }
+.fcap .n { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--b-accent); text-transform: uppercase; }
+
+.frame {
+  position: relative;
+  width: 375px;
+  max-width: 100%;
+  border-radius: 26px;
+  border: 1px solid var(--b-line);
+  background: #F6F5F6;
+  box-shadow: var(--b-shadow);
+  overflow: hidden;
+  font-family: var(--kr);
+}
+.fold {
+  position: absolute;
+  left: 0; right: 0; top: 812px;
+  border-top: 1px dashed rgba(225,29,72,.45);
+  pointer-events: none;
+  z-index: 5;
+}
+.fold::after {
+  content: "812px";
+  position: absolute;
+  right: 8px; top: -8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .08em;
+  color: #E11D48;
+  background: #FFF;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+/* ============================================================
+   APP UI — 플랜 확정 토큰. 보드 테마와 무관하게 라이트 고정.
+   (다크는 §5에서 별도 프레임으로 확인)
+   ============================================================ */
+.app {
+  --bg:      #F6F5F6;
+  --card:    #FFFFFF;
+  --line:    #EAE7E9;
+  --line-2:  #F2F0F1;
+  --ink:     #18181B;
+  --muted:   #71717A;
+  --faint:   #A1A1AA;
+
+  --primary: #E11D48;
+  --primary-soft: #FFF1F3;
+  --warning: #D97706;
+  --warning-ink: #B45309;
+  --warning-soft: #FFFBEB;
+  --success: #059669;
+  --success-ink: #047857;
+  --success-soft: #ECFDF5;
+
+  --groom: #0EA5E9;
+  --groom-ink: #0369A1;
+  --groom-soft: #F0F9FF;
+  --bride: #E11D48;
+  --bride-soft: #FFF1F3;
+  --joint: #71717A;
+  --joint-soft: #F4F4F5;
+
+  --c1: #E11D48;
+  --c2: #F59E0B;
+  --c3: #0EA5E9;
+  --c4: #10B981;
+  --c5: #8B5CF6;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -.01em;
+  min-height: 812px;
+  display: flex;
+  flex-direction: column;
+  word-break: keep-all;
+}
+.app.dark {
+  --bg:      #0F0E10;
+  --card:    #1A181B;
+  --line:    #2A272B;
+  --line-2:  #221F23;
+  --ink:     #F4F2F3;
+  --muted:   #A1999D;
+  --faint:   #7C7175;
+
+  --primary: #FB7185;
+  --primary-soft: #2A1319;
+  --warning: #FBBF24;
+  --warning-ink: #FBBF24;
+  --warning-soft: #2A200D;
+  --success: #34D399;
+  --success-ink: #34D399;
+  --success-soft: #0E241C;
+
+  --groom: #38BDF8;
+  --groom-ink: #38BDF8;
+  --groom-soft: #0C2130;
+  --bride: #FB7185;
+  --bride-soft: #2A1319;
+  --joint: #A1A1AA;
+  --joint-soft: #26242A;
+
+  --c1: #FB7185; --c2: #FBBF24; --c3: #38BDF8; --c4: #34D399; --c5: #A78BFA;
+}
+.app .num { font-variant-numeric: tabular-nums; }
+
+/* status bar */
+.statusbar {
+  height: 44px;
+  padding: 0 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--ink);
+  background: var(--card);
+  font-variant-numeric: tabular-nums;
+}
+.statusbar .icons { display: flex; gap: 5px; align-items: center; opacity: .78; }
+.sig { display: flex; gap: 1.5px; align-items: flex-end; height: 9px; }
+.sig i { width: 2.5px; background: currentColor; border-radius: 1px; }
+.sig i:nth-child(1) { height: 3px; }
+.sig i:nth-child(2) { height: 5px; }
+.sig i:nth-child(3) { height: 7px; }
+.sig i:nth-child(4) { height: 9px; }
+.batt { width: 20px; height: 10px; border: 1.2px solid currentColor; border-radius: 3px; position: relative; }
+.batt::after { content:""; position:absolute; right:-3px; top:3px; width:1.5px; height:4px; background: currentColor; border-radius:0 1px 1px 0; }
+.batt i { position:absolute; inset:1.5px; width: 68%; background: currentColor; border-radius: 1px; }
+
+/* app header */
+.appbar {
+  min-height: 52px;
+  padding: 6px 16px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.appbar .h {
+  font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.02em;
+}
+.appbar .sub { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.iconbtn {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  flex: none;
+}
+.iconbtn svg { width: 21px; height: 21px; }
+
+/* screen body */
+.screen {
+  flex: 1;
+  padding: 16px 16px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.card.tight { padding: 0; gap: 0; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.sechead {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 2px 0;
+}
+.sechead .t { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.sechead .a { font-size: 13px; color: var(--primary); font-weight: 600; }
+
+.label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.money-lg { font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.money-md { font-size: 17px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.money-sm { font-size: 15px; line-height: 1.3; font-weight: 500; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.display  { font-size: 32px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.bodysm { font-size: 13px; line-height: 1.45; color: var(--muted); letter-spacing: 0; }
+
+/* progress */
+.pbar {
+  height: 10px; border-radius: 999px;
+  background: var(--line-2);
+  overflow: hidden;
+  display: flex;
+}
+.pbar > i { display: block; height: 100%; }
+.pfill { background: var(--primary); }
+.pest {
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--primary) 34%, transparent) 0 3px,
+    transparent 3px 7px);
+  border-left: 1px dashed color-mix(in srgb, var(--primary) 60%, transparent);
+}
+.pbar.thin { height: 7px; }
+.plegend { display: flex; gap: 14px; flex-wrap: wrap; }
+.plegend span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.dot.solid { background: var(--primary); }
+.dot.hatch {
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--primary) 40%, transparent) 0 2px,
+    transparent 2px 5px);
+  border: 1px dashed color-mix(in srgb, var(--primary) 65%, transparent);
+}
+
+/* badges & chips */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 22px; padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0;
+  white-space: nowrap;
+}
+.badge.est {
+  color: var(--primary);
+  border: 1px dashed color-mix(in srgb, var(--primary) 55%, transparent);
+  background: var(--primary-soft);
+}
+.badge.stage { color: var(--muted); background: var(--joint-soft); }
+.badge.stage.balance { color: var(--warning-ink); background: var(--warning-soft); }
+.payer {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 8px 0 6px;
+  border-radius: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0;
+  white-space: nowrap;
+}
+.payer i { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.payer.groom { color: var(--groom-ink); background: var(--groom-soft); }
+.payer.groom i { background: var(--groom); }
+.payer.bride { color: var(--primary); background: var(--bride-soft); }
+.payer.bride i { background: var(--bride); }
+.payer.joint { color: var(--muted); background: var(--joint-soft); }
+.payer.joint i { background: var(--joint); }
+
+/* warning banner */
+.warn {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--warning-soft);
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, transparent);
+}
+.warn svg { width: 18px; height: 18px; color: var(--warning); flex: none; margin-top: 1px; }
+.warn .tx { display: flex; flex-direction: column; gap: 2px; }
+.warn .tt { font-size: 13.5px; font-weight: 650; color: var(--warning-ink); letter-spacing: -.005em; }
+.warn .td { font-size: 12.5px; color: var(--muted); line-height: 1.45; letter-spacing: 0; }
+
+/* list rows */
+.list { display: flex; flex-direction: column; }
+.lrow {
+  min-height: 56px;
+  padding: 11px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+.lrow:last-child { border-bottom: 0; }
+.lrow .ic {
+  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; letter-spacing: -.02em;
+}
+.lrow .mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.lrow .n { font-size: 15px; font-weight: 550; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lrow .m { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.lrow .r { text-align: right; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex: none; }
+.lrow.estimated { background: repeating-linear-gradient(45deg, transparent 0 9px, color-mix(in srgb, var(--primary) 3.5%, transparent) 9px 18px); }
+.lrow.estimated .n { color: var(--muted); }
+
+.grouphead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 14px 2px 6px;
+}
+.grouphead .g { font-size: 13px; font-weight: 700; letter-spacing: .01em; color: var(--muted); }
+.grouphead .s { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* filter chips */
+.filters { display: flex; gap: 7px; overflow: hidden; padding: 2px 0; }
+.fchip {
+  height: 36px; padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 550; color: var(--muted);
+  white-space: nowrap; letter-spacing: 0;
+}
+.fchip.on { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.fchip svg { width: 13px; height: 13px; opacity: .7; }
+
+/* segmented control */
+.seg {
+  display: flex; padding: 3px; gap: 3px;
+  background: var(--joint-soft);
+  border-radius: 12px;
+}
+.seg > span {
+  flex: 1; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: -.01em;
+}
+.seg > span.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.09); }
+.seg.rose > span.on { color: var(--primary); }
+
+/* buttons */
+.btn {
+  height: 44px; padding: 0 18px;
+  border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 15px; font-weight: 650; letter-spacing: -.01em;
+  background: var(--primary); color: #fff;
+  border: 0;
+}
+.btn.lg { height: 48px; font-size: 16px; width: 100%; }
+.btn.ghost { background: var(--joint-soft); color: var(--ink); }
+.btn.sm { height: 36px; padding: 0 12px; font-size: 13px; border-radius: 10px; }
+
+/* bottom nav */
+.bnav {
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.bnav a {
+  flex: 1;
+  min-height: 52px;
+  padding: 8px 0 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--faint);
+  text-decoration: none;
+}
+.bnav a.on { color: var(--primary); }
+.bnav svg { width: 22px; height: 22px; }
+.bnav span { font-size: 11px; font-weight: 600; letter-spacing: -.01em; }
+
+/* FAB */
+.fab {
+  position: absolute;
+  right: 16px;
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  background: var(--primary);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px -4px rgba(225,29,72,.5);
+  z-index: 4;
+}
+.fab svg { width: 26px; height: 26px; }
+
+/* gauge */
+.gauge { display: flex; flex-direction: column; gap: 9px; }
+.gtrack {
+  position: relative;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.gtrack > i.fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  border-right: 2px solid var(--primary);
+}
+.gtrack > i.mark {
+  position: absolute; top: -2px; bottom: -2px;
+  width: 0;
+  border-left: 2px dashed var(--warning);
+}
+.gtrack .lbl {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; padding: 0 11px;
+  font-size: 13px; font-weight: 650; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+
+/* mini table (결산 소분류) */
+.mtable { display: flex; flex-direction: column; }
+.mrow {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-2);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.mrow:last-child { border-bottom: 0; }
+.mrow .top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mrow .nm { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
+.mrow .pct { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mrow .bot { display: flex; justify-content: space-between; gap: 10px; }
+.mrow .kv { font-size: 12px; color: var(--muted); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.mrow .kv b { color: var(--ink); font-weight: 600; }
+
+/* settlement */
+.settle-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.settle-box {
+  padding: 12px;
+  border-radius: 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.settle-box.g { background: var(--groom-soft); }
+.settle-box.b { background: var(--bride-soft); }
+.settle-result {
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, transparent);
+  font-size: 14px; line-height: 1.5; letter-spacing: -.01em;
+}
+.settle-result b { color: var(--primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* timeline chart */
+.chart { display: flex; flex-direction: column; gap: 10px; }
+.plot { display: flex; align-items: flex-end; gap: 14px; height: 148px; padding-top: 6px; position: relative; }
+.grid-l { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); }
+.mgroup { flex: 1; display: flex; flex-direction: column; gap: 7px; height: 100%; }
+.bars { flex: 1; display: flex; align-items: flex-end; gap: 4px; }
+.bar { flex: 1; border-radius: 5px 5px 0 0; min-height: 3px; }
+.bar.c { background: var(--primary); }
+.bar.e {
+  background: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--primary) 32%, transparent) 0 3px,
+    transparent 3px 7px);
+  border: 1px dashed color-mix(in srgb, var(--primary) 55%, transparent);
+  border-bottom: 0;
+}
+.mgroup .mlab { text-align: center; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* bottom sheet */
+.sheet-shade {
+  position: absolute; inset: 0;
+  background: rgba(24,24,27,.42);
+  z-index: 8;
+}
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  z-index: 9;
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 8px 16px 24px;
+  display: flex; flex-direction: column; gap: 13px;
+  box-shadow: 0 -8px 40px -8px rgba(0,0,0,.28);
+  max-height: 85%;
+  overflow: hidden;
+}
+.handle { width: 40px; height: 4px; border-radius: 999px; background: var(--line); margin: 4px auto 6px; }
+.sheet-title { font-size: 17px; font-weight: 650; letter-spacing: -.02em; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > .label { padding-left: 2px; }
+.input {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 16px; color: var(--ink); letter-spacing: -.01em;
+  background: var(--card);
+}
+.input.ph { color: var(--faint); }
+.input.amount {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  font-size: 26px; font-weight: 700; letter-spacing: -.02em;
+  min-height: 58px;
+  font-variant-numeric: tabular-nums;
+}
+.input.amount .cur { font-size: 18px; color: var(--muted); font-weight: 600; }
+.input svg { width: 16px; height: 16px; color: var(--faint); flex: none; }
+.quick { display: flex; gap: 7px; }
+.quick span {
+  height: 36px; flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 10px;
+  font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0;
+}
+.recent { display: flex; gap: 6px; flex-wrap: wrap; }
+.recent span {
+  height: 32px; padding: 0 11px;
+  display: inline-flex; align-items: center;
+  border-radius: 999px; border: 1px solid var(--line);
+  font-size: 13px; color: var(--muted); font-weight: 550; letter-spacing: 0;
+}
+.recent span.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.check { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: 14.5px; letter-spacing: -.01em; }
+.check .bx {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.6px solid var(--primary); background: var(--primary);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.check .bx svg { width: 14px; height: 14px; color: #fff; }
+.sheet .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* empty state */
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 34px 20px;
+  text-align: center;
+}
+.empty .ei {
+  width: 52px; height: 52px; border-radius: 16px;
+  background: var(--joint-soft);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--faint);
+}
+.empty .ei svg { width: 24px; height: 24px; }
+.empty .et { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.empty .ed { font-size: 13px; color: var(--muted); letter-spacing: 0; max-width: 24ch; }
+
+/* component gallery */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.gcell {
+  border: 1px solid var(--b-line);
+  border-radius: 12px;
+  background: var(--b-bg-2);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.gcell .gh {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--b-line-soft);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.gcell .gh .gn { font-family: var(--mono); font-size: 11px; color: var(--b-ink); letter-spacing: .02em; }
+.gcell .gh .gd { font-size: 11.5px; color: var(--b-ink-3); }
+.gcell .gb {
+  padding: 16px;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #F6F5F6;
+  flex: 1;
+}
+.gcell .gb.col { flex-direction: column; align-items: stretch; }
+
+/* decisions list */
+.decisions { display: flex; flex-direction: column; gap: 10px; }
+.dec {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--b-line);
+  border-radius: 10px;
+  background: var(--b-bg-2);
+}
+.dec .k {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--b-accent); padding-top: 3px; letter-spacing: .04em;
+}
+.dec .v { display: flex; flex-direction: column; gap: 3px; }
+.dec .v .q { font-size: 14.5px; font-weight: 650; letter-spacing: -.01em; text-wrap: balance; }
+.dec .v .a { font-size: 13.5px; color: var(--b-ink-2); line-height: 1.55; }
+.dec .v .a code {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--b-line-soft); padding: 1px 5px; border-radius: 4px; color: var(--b-ink);
+}
+
+/* toc */
+.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+.toc a {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .03em;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--b-line); background: var(--b-bg-2);
+  color: var(--b-ink-2); text-decoration: none;
+}
+.toc a:hover { color: var(--b-accent); border-color: var(--b-accent); }
+.toc a:focus-visible { outline: 2px solid var(--b-accent); outline-offset: 2px; }
+
+hr.rule { border: 0; border-top: 1px solid var(--b-line); margin: 0; }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">Phase PD · 디자인 시안 · 2026-07-29</div>
+    <h1>결혼준비 예산관리 가계부<br><em>디자인 시스템 &amp; 5탭 시안</em></h1>
+    <p class="lede">
+      P0 셸 위에 얹을 토큰·타이포·밀도를 확정하고, 그것으로 하단 5탭과 빠른입력 바텀시트를 실제 픽셀로 그린 검토용 보드입니다.
+      아래 화면들은 <strong>구현 전 시안</strong>이며, 앱 코드에는 아직 반영하지 않았습니다.
+      승인되면 P2~P6은 이 뼈대에서 목업 데이터만 Supabase 쿼리로 갈아끼웁니다.
+    </p>
+    <div class="mast-meta">
+      <span class="chip">뷰포트 <b>375 × 812</b></span>
+      <span class="chip">액센트 <b>#E11D48</b></span>
+      <span class="chip">터치 타깃 <b>≥ 44px</b></span>
+      <span class="chip">폰트 <b>Pretendard Variable</b></span>
+      <span class="chip">데이터셋 <b>rich</b></span>
+    </div>
+    <nav class="toc">
+      <a href="#tokens">01 — 컬러 토큰</a>
+      <a href="#type">02 — 타이포그래피</a>
+      <a href="#density">03 — 밀도</a>
+      <a href="#screens">04 — 5탭 시안</a>
+      <a href="#sheet">05 — 빠른입력</a>
+      <a href="#dark">06 — 다크 모드</a>
+      <a href="#parts">07 — 컴포넌트</a>
+      <a href="#decisions">08 — 결정 필요</a>
+    </nav>
+  </header>
+
+  <!-- ============================== 01 컬러 ============================== -->
+  <section class="sec" id="tokens">
+    <div class="sec-head">
+      <span class="sec-num">01 / COLOR</span>
+      <h2>컬러 토큰과 대비 검증</h2>
+      <p>
+        플랜에서 확정한 값 그대로입니다. 다만 <strong>구현 전에 대비비를 먼저 계산</strong>했습니다 —
+        토큰 세 개가 본문 텍스트색으로 쓰기엔 WCAG AA(4.5:1)에 미달합니다.
+        해당 토큰은 면·테두리·큰 숫자 전용으로 못 박고, 텍스트가 필요한 자리에는 아래 <em>본문용 대체</em> 값을 씁니다.
+      </p>
+    </div>
+
+    <div class="tbl-scroll">
+      <table class="tokens">
+        <thead>
+          <tr>
+            <th></th><th>토큰</th><th>HEX</th><th>흰 배경 대비</th><th>사용 범위</th><th>본문용 대체</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="sw" style="background:#18181B"></span></td>
+            <td class="name">--ink</td><td class="hex">#18181B</td>
+            <td class="ratio pass">17.7:1 ✓</td>
+            <td>본문·제목 전부</td><td>—</td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#71717A"></span></td>
+            <td class="name">--muted</td><td class="hex">#71717A</td>
+            <td class="ratio pass">4.83:1 ✓</td>
+            <td>보조 설명·라벨 (공동 결제자 색 겸용)</td><td>—</td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#E11D48"></span></td>
+            <td class="name">--primary</td><td class="hex">#E11D48</td>
+            <td class="ratio pass">4.70:1 ✓</td>
+            <td>CTA·활성 탭·진행 바·금액 강조. 흰 글자 얹어도 통과</td><td>—</td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#D97706"></span></td>
+            <td class="name">--warning</td><td class="hex">#D97706</td>
+            <td class="ratio fail">3.18:1 ✗</td>
+            <td>배너 면·아이콘·테두리만</td>
+            <td class="hex">#B45309 <span class="pass">5.02:1</span></td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#059669"></span></td>
+            <td class="name">--success</td><td class="hex">#059669</td>
+            <td class="ratio fail">3.77:1 ✗</td>
+            <td>잔액 여유 바·손익 + 아이콘</td>
+            <td class="hex">#047857 <span class="pass">5.48:1</span></td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#0EA5E9"></span></td>
+            <td class="name">--payer-groom</td><td class="hex">#0EA5E9</td>
+            <td class="ratio fail">2.77:1 ✗</td>
+            <td>칩 점·차트 면만. 텍스트 불가</td>
+            <td class="hex">#0369A1 <span class="pass">5.93:1</span></td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#E11D48"></span></td>
+            <td class="name">--payer-bride</td><td class="hex">#E11D48</td>
+            <td class="ratio pass">4.70:1 ✓</td>
+            <td>칩·차트. <strong>primary·chart-1과 동일 색</strong> → 08번 항목 참조</td><td>—</td>
+          </tr>
+          <tr>
+            <td><span class="sw" style="background:#71717A"></span></td>
+            <td class="name">--payer-joint</td><td class="hex">#71717A</td>
+            <td class="ratio pass">4.83:1 ✓</td>
+            <td>칩·차트·텍스트 전부</td><td>—</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="sw" style="background:#E11D48"></span>
+            </td>
+            <td class="name">--chart-1~5</td>
+            <td class="hex">#E11D48 · #F59E0B · #0EA5E9 · #10B981 · #8B5CF6</td>
+            <td class="ratio">면 전용</td>
+            <td>결혼식 · 신혼여행 · 혼수 · 신혼집 · 기타</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note flag">
+      <div><strong>색만으로 정보를 전달하지 않는다.</strong> 이 앱은 구분해야 할 축이 세 개(확정/예상 · 결제자 3종 · 대분류 4종)라 색에만 기대면 무너집니다. 시안 전체에 아래 규칙을 적용했습니다.</div>
+      <div>· 확정 = 실선 테두리 + 채운 막대 &nbsp;/&nbsp; 예상 = <code>점선 테두리 + 45° 사선 패턴 + "예상" 배지</code></div>
+      <div>· 결제자 = 색 점 + <code>텍스트 라벨(예랑/예신/공동)</code> 항상 병기</div>
+      <div>· 대분류 = 색 + 카테고리명 항상 노출</div>
+      <div>결과적으로 그레이스케일로 강제 렌더해도 모든 구분이 살아남습니다.</div>
+    </div>
+  </section>
+
+  <!-- ============================== 02 타이포 ============================== -->
+  <section class="sec" id="type">
+    <div class="sec-head">
+      <span class="sec-num">02 / TYPE</span>
+      <h2>타이포그래피 — 9단 스케일</h2>
+      <p>
+        한글은 라틴보다 크게 잡아야 읽힙니다. 본문 기준 15px, 금액은 별도 3단 스케일.
+        전역으로 <code style="font-family:var(--mono);font-size:12px">word-break: keep-all</code>(단어 중간 끊김 방지)과
+        금액·수량 <code style="font-family:var(--mono);font-size:12px">tabular-nums</code>(자릿수 정렬)를 겁니다.
+      </p>
+    </div>
+
+    <div class="note">
+      <div><strong>이 보드는 시스템 한글 폰트로 렌더됩니다.</strong> 아티팩트 CSP가 폰트 CDN을 차단해 Pretendard를 실을 수 없기 때문입니다. 자소 형태만 다르고 <strong>크기·행간·자간·굵기는 아래 표 그대로</strong>라 스케일 검토에는 지장이 없습니다. 실제 앱은 <code>pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css</code>를 import 해 한글 unicode-range별 woff2 조각만 내려받습니다.</div>
+    </div>
+
+    <div class="scale">
+      <div class="scale-row"><div class="spec"><b>display</b>32 / 1.15 · 700 · -0.02em</div><div class="demo t-display">₩26,000,000</div></div>
+      <div class="scale-row"><div class="spec"><b>title</b>20 / 1.30 · 600 · -0.02em</div><div class="demo t-title">우리 결혼 준비</div></div>
+      <div class="scale-row"><div class="spec"><b>section</b>16 / 1.40 · 600 · -0.01em</div><div class="demo t-section">대분류별 소진율</div></div>
+      <div class="scale-row"><div class="spec"><b>body</b>15 / 1.55 · 400 · -0.01em</div><div class="demo t-body">스튜디오 스냅 계약금을 모스앤코튼에 결제했습니다.</div></div>
+      <div class="scale-row"><div class="spec"><b>body-sm</b>13 / 1.45 · 400</div><div class="demo t-bodysm">날짜를 비워두면 예상 지출로 기록되어 월별 현금 흐름에 반영됩니다.</div></div>
+      <div class="scale-row"><div class="spec"><b>caption</b>12 / 1.40 · 500</div><div class="demo t-caption">예신 · 현금 · 계약금</div></div>
+      <div class="scale-row"><div class="spec"><b>money-lg</b>24 / 1.20 · 700 · -0.02em</div><div class="demo t-moneylg">₩3,744,000</div></div>
+      <div class="scale-row"><div class="spec"><b>money-md</b>17 / 1.30 · 600 · -0.01em</div><div class="demo t-moneymd">₩1,840,000</div></div>
+      <div class="scale-row"><div class="spec"><b>money-sm</b>15 / 1.30 · 500 · -0.01em</div><div class="demo t-moneysm">₩220,000</div></div>
+    </div>
+  </section>
+
+  <!-- ============================== 03 밀도 ============================== -->
+  <section class="sec" id="density">
+    <div class="sec-head">
+      <span class="sec-num">03 / DENSITY</span>
+      <h2>밀도 — 44px 규칙</h2>
+      <p>
+        현재 <code style="font-family:var(--mono);font-size:12px">src/components/ui/button.tsx</code>의 radix-nova 프리셋은 데스크톱 밀도라
+        기본이 32px, 최대(<code style="font-family:var(--mono);font-size:12px">lg</code>)도 36px입니다. 기획안의 "터치 타깃 최소 44px" 원칙을 지킬 수 없어 size variant를 교체합니다.
+      </p>
+    </div>
+
+    <div class="density">
+      <div class="dbox"><span class="cap">기존 default · h-8</span><div class="dbar old" style="height:32px">32</div></div>
+      <div class="dbox"><span class="cap">기존 lg · h-9</span><div class="dbar old" style="height:36px">36</div></div>
+      <div class="dbox"><span class="cap">신규 sm · h-9</span><div class="dbar" style="height:36px">36</div></div>
+      <div class="dbox"><span class="cap">신규 default · h-11</span><div class="dbar" style="height:44px">44</div></div>
+      <div class="dbox"><span class="cap">신규 lg · h-12</span><div class="dbar" style="height:48px">48</div></div>
+      <div class="dbox"><span class="cap">리스트 행 최소</span><div class="dbar" style="height:56px">56</div></div>
+      <div class="dbox"><span class="cap">FAB</span><div class="dbar" style="height:56px;width:56px;border-radius:18px">56</div></div>
+    </div>
+
+    <div class="note">
+      <div>· <code>sm</code>(36px) 칩·필터는 높이만 36이고 <strong>패딩으로 44px 터치 영역</strong>을 확보합니다.</div>
+      <div>· 인접 터치 타깃 사이 최소 8px 간격.</div>
+      <div>· 입력 필드 폰트는 16px 이상 — iOS가 포커스 시 화면을 자동 확대하지 않게 합니다. 덕분에 <code>maximum-scale=1</code>로 확대를 막을 필요가 없습니다(확대는 접근성 기능이라 막으면 안 됩니다).</div>
+      <div>· <strong>주의</strong>: <code>button.tsx</code>는 shadcn 업스트림 파일이라 <code>npx shadcn add button</code>을 다시 돌리면 덮어써집니다. 파일 상단에 경고 주석을 남깁니다.</div>
+    </div>
+  </section>
+
+  <!-- ============================== 04 화면 ============================== -->
+  <section class="sec" id="screens">
+    <div class="sec-head">
+      <span class="sec-num">04 / SCREENS</span>
+      <h2>하단 5탭 시안</h2>
+      <p>
+        <code style="font-family:var(--mono);font-size:12px">rich</code> 데이터셋 기준. 예산 수치는 원본 시트 실측치(총 26,000,000 / 결혼식 배분 13,000,000 / 세부 합 13,380,000)를 그대로 쓰고,
+        지출·하객은 화면 밀도를 확인할 만큼 채웠습니다. 점선은 <strong>812px 접힘선</strong> — 그 아래는 스크롤 영역입니다.
+        하단 탭은 실제 앱에서 화면 하단 고정입니다.
+      </p>
+    </div>
+
+    <div class="frames">
+
+      <!-- ---------- 홈 ---------- -->
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Tab 1 — 홈</span>
+          <span class="t">대시보드</span>
+          <span class="d">D-day → 총예산 소진(확정+예상 2계열) → 남은 예산 → 이번 달 → 잔금 경고 → 최근 지출 → 저축 목표</span>
+        </div>
+        <div class="frame">
+          <div class="fold"></div>
+          <div class="app">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">우리 결혼</div>
+                <div class="sub">2026년 11월 14일 토요일</div>
+              </div>
+              <div class="iconbtn" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+            </div>
+
+            <div class="screen">
+              <div class="card" style="gap:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <span class="label">결혼식까지</span>
+                  <span class="badge est" style="border-style:solid;border-color:transparent;background:var(--primary);color:#fff">D-108</span>
+                </div>
+                <div>
+                  <div class="label" style="margin-bottom:4px">총 예산 대비 지출</div>
+                  <div class="display">₩3,744,000</div>
+                  <div class="bodysm">전체 예산 ₩26,000,000 중 <b style="color:var(--ink)">14%</b> 집행</div>
+                </div>
+                <div class="pbar" role="progressbar" aria-valuenow="34" aria-valuemin="0" aria-valuemax="100" aria-label="총 예산 소진율">
+                  <i class="pfill" style="width:14.4%"></i>
+                  <i class="pest" style="width:19.2%"></i>
+                </div>
+                <div class="plegend">
+                  <span><i class="dot solid"></i>확정 ₩3,744,000</span>
+                  <span><i class="dot hatch"></i>예상 ₩5,000,000</span>
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">남은 예산</span>
+                  <span class="money-lg" style="color:var(--success-ink)">₩22,256,000</span>
+                  <span class="bodysm">예상 반영 시 ₩17,256,000</span>
+                </div>
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">이번 달 (7월)</span>
+                  <span class="money-lg">₩1,904,000</span>
+                  <span class="bodysm">예상 +₩250,000</span>
+                </div>
+              </div>
+
+              <div class="warn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                <div class="tx">
+                  <span class="tt">잔금 미납 2건</span>
+                  <span class="td">웨딩홀 ₩4,200,000 · 본식 스냅 ₩550,000 — 날짜가 아직 미정입니다</span>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">최근 지출</span><span class="a">전체 보기</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid">
+                      <span class="n">스튜디오 스냅</span>
+                      <span class="m"><span class="payer bride"><i></i>예신</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩220,000</span><span class="bodysm num">07.27</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid">
+                      <span class="n">웨딩홀 · 라비돌</span>
+                      <span class="m"><span class="payer joint"><i></i>공동</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩1,000,000</span><span class="bodysm num">07.18</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid">
+                      <span class="n">드레스 · 마리에르</span>
+                      <span class="m"><span class="payer groom"><i></i>예랑</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩300,000</span><span class="bodysm num">07.12</span></span>
+                  </div>
+                  <div class="lrow estimated">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid">
+                      <span class="n">청첩장</span>
+                      <span class="m"><span class="badge est">예상</span><span class="payer bride"><i></i>예신</span></span>
+                    </span>
+                    <span class="r"><span class="money-md" style="color:var(--muted)">₩250,000</span><span class="bodysm">7월 중</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--joint-soft);color:var(--muted)">상견</span>
+                    <span class="mid">
+                      <span class="n">상견례 식사 · 한일관</span>
+                      <span class="m"><span class="payer groom"><i></i>예랑</span><span class="badge stage">전액</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩384,000</span><span class="bodysm num">07.05</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">저축 목표</span></div>
+              <div class="card">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <span class="money-md">예식 자금 통장</span>
+                  <span class="money-sm" style="color:var(--muted)">60%</span>
+                </div>
+                <div class="pbar thin" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="저축 목표 진행률">
+                  <i class="pfill" style="width:60%;background:var(--success)"></i>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="bodysm num">₩12,000,000 / ₩20,000,000</span>
+                  <span class="bodysm">매달 ₩1,500,000</span>
+                </div>
+              </div>
+            </div>
+
+            <nav class="bnav">
+              <a href="#screens" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>홈</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>예산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>지출</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>결산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17 15.5a5.5 5.5 0 0 1 4.5 4.5"/></svg><span>하객</span></a>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 예산 ---------- -->
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Tab 2 — 예산</span>
+          <span class="t">예산 수립</span>
+          <span class="d">시트에 없던 개선분: 대분류 배분액보다 소분류 예산 합이 크면 <b>실시간 초과 경고</b>. 결혼식이 정확히 그 상태입니다(13,000,000 &lt; 13,380,000).</span>
+        </div>
+        <div class="frame">
+          <div class="fold"></div>
+          <div class="app">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div class="h">예산</div>
+              <div class="btn sm ghost">배분 편집</div>
+            </div>
+
+            <div class="screen">
+              <div class="card" style="gap:8px">
+                <span class="label">총 가용예산</span>
+                <span class="display">₩26,000,000</span>
+                <div class="pbar thin" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="배분 완료 비율">
+                  <i class="pfill" style="width:100%"></i>
+                </div>
+                <span class="bodysm">4개 대분류에 ₩26,000,000 전액 배분 완료</span>
+              </div>
+
+              <div class="warn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                <div class="tx">
+                  <span class="tt">결혼식 세부 예산이 배분액을 초과합니다</span>
+                  <span class="td">배분 ₩13,000,000 · 세부 합 ₩13,380,000 — <b style="color:var(--warning-ink)">₩380,000 초과</b>. 배분액을 늘리거나 세부 항목을 줄이세요.</span>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">대분류 배분</span></div>
+
+              <div class="card" style="gap:11px;border-color:color-mix(in srgb, var(--warning) 40%, transparent)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="display:flex;align-items:center;gap:8px">
+                    <i style="width:9px;height:9px;border-radius:3px;background:var(--c1);display:block"></i>
+                    <span class="money-md">결혼식</span>
+                  </span>
+                  <span class="money-sm" style="color:var(--muted)">15%</span>
+                </div>
+                <div class="pbar thin" role="progressbar" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100" aria-label="결혼식 소진율">
+                  <i style="width:14.6%;background:var(--c1)"></i>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="bodysm">배분 <b style="color:var(--ink)" class="num">₩13,000,000</b></span>
+                  <span class="bodysm">세부 합 <b style="color:var(--warning-ink)" class="num">₩13,380,000</b></span>
+                </div>
+
+                <div style="border-top:1px solid var(--line-2);margin:0 -16px"></div>
+                <div class="list" style="margin:0 -16px -16px">
+                  <div class="lrow" style="padding-top:10px;padding-bottom:10px">
+                    <span class="mid">
+                      <span class="n">스튜디오 스냅</span>
+                      <span class="bodysm">모스앤코튼 · 후기 링크 1</span>
+                    </span>
+                    <span class="r"><span class="money-md">₩710,000</span><span class="bodysm">잔액 ₩490,000</span></span>
+                  </div>
+                  <div class="lrow" style="padding-top:10px;padding-bottom:10px">
+                    <span class="mid">
+                      <span class="n">드레스</span>
+                      <span class="bodysm">마리에르 · 가봉 2회 포함</span>
+                    </span>
+                    <span class="r"><span class="money-md">₩1,100,000</span><span class="bodysm">잔액 ₩800,000</span></span>
+                  </div>
+                  <div class="lrow" style="padding-top:10px;padding-bottom:10px">
+                    <span class="mid">
+                      <span class="n">주례</span>
+                      <span class="bodysm">후보 미정</span>
+                    </span>
+                    <span class="r"><span class="money-md">₩1,000,000</span><span class="bodysm">미집행</span></span>
+                  </div>
+                  <div class="lrow" style="padding-top:10px;padding-bottom:10px">
+                    <span class="mid">
+                      <span class="n">상견례 식사</span>
+                      <span class="bodysm">한일관 · 8인 예약</span>
+                    </span>
+                    <span class="r"><span class="money-md">₩400,000</span><span class="bodysm" style="color:var(--warning-ink)">잔액 ₩16,000</span></span>
+                  </div>
+                  <div class="lrow" style="padding-top:10px;padding-bottom:10px;justify-content:center;color:var(--primary);font-size:14px;font-weight:600">
+                    소분류 12개 더 보기
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="gap:11px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="display:flex;align-items:center;gap:8px">
+                    <i style="width:9px;height:9px;border-radius:3px;background:var(--c2);display:block"></i>
+                    <span class="money-md">신혼여행</span>
+                  </span>
+                  <span class="money-sm" style="color:var(--muted)">37%</span>
+                </div>
+                <div class="pbar thin" role="progressbar" aria-valuenow="37" aria-valuemin="0" aria-valuemax="100" aria-label="신혼여행 소진율">
+                  <i style="width:36.8%;background:var(--c2)"></i>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="bodysm">배분 <b style="color:var(--ink)" class="num">₩5,000,000</b></span>
+                  <span class="bodysm">세부 합 <b style="color:var(--ink)" class="num">₩4,900,000</b></span>
+                </div>
+              </div>
+
+              <div class="card" style="gap:11px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="display:flex;align-items:center;gap:8px">
+                    <i style="width:9px;height:9px;border-radius:3px;background:var(--c3);display:block"></i>
+                    <span class="money-md">혼수</span>
+                  </span>
+                  <span class="money-sm" style="color:var(--muted)">0%</span>
+                </div>
+                <div class="pbar thin" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="혼수 소진율">
+                  <i style="width:0%;background:var(--c3)"></i>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="bodysm">배분 <b style="color:var(--ink)" class="num">₩5,000,000</b></span>
+                  <span class="bodysm">세부 합 <b style="color:var(--ink)" class="num">₩4,650,000</b></span>
+                </div>
+              </div>
+
+              <div class="card" style="gap:11px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="display:flex;align-items:center;gap:8px">
+                    <i style="width:9px;height:9px;border-radius:3px;background:var(--c4);display:block"></i>
+                    <span class="money-md">신혼집</span>
+                  </span>
+                  <span class="money-sm" style="color:var(--muted)">0%</span>
+                </div>
+                <div class="pbar thin" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="신혼집 소진율">
+                  <i style="width:0%;background:var(--c4)"></i>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="bodysm">배분 <b style="color:var(--ink)" class="num">₩3,000,000</b></span>
+                  <span class="bodysm">세부 합 <b style="color:var(--ink)" class="num">₩2,800,000</b></span>
+                </div>
+              </div>
+            </div>
+
+            <nav class="bnav">
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>홈</span></a>
+              <a href="#screens" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>예산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>지출</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>결산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17 15.5a5.5 5.5 0 0 1 4.5 4.5"/></svg><span>하객</span></a>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 지출 ---------- -->
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Tab 3 — 지출</span>
+          <span class="t">지출 원장</span>
+          <span class="d">월 그룹 + 필터. 날짜 미정 = 예상 지출은 <b>사선 배경 + 점선 "예상" 배지</b>로 확정 건과 구분되고, 월 합계에서도 따로 집계됩니다.</span>
+        </div>
+        <div class="frame">
+          <div class="fold"></div>
+          <div class="app">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">지출</div>
+                <div class="sub">총 7건 · 확정 ₩3,744,000</div>
+              </div>
+              <div class="iconbtn" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </div>
+            </div>
+
+            <div class="screen" style="position:relative">
+              <div class="filters">
+                <span class="fchip on">전체 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                <span class="fchip">결제자 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                <span class="fchip">확정/예상 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                <span class="fchip">잔금</span>
+              </div>
+
+              <div class="grouphead"><span class="g">2026년 7월</span><span class="s">₩2,154,000</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid">
+                      <span class="n">스튜디오 스냅</span>
+                      <span class="m"><span class="bodysm">모스앤코튼</span><span class="payer bride"><i></i>예신</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩220,000</span><span class="bodysm num">07.27 · 현금</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid">
+                      <span class="n">웨딩홀 대관</span>
+                      <span class="m"><span class="bodysm">라비돌</span><span class="payer joint"><i></i>공동</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩1,000,000</span><span class="bodysm num">07.18 · 계좌</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid">
+                      <span class="n">드레스</span>
+                      <span class="m"><span class="bodysm">마리에르</span><span class="payer groom"><i></i>예랑</span><span class="badge stage">계약금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩300,000</span><span class="bodysm num">07.12 · 카드</span></span>
+                  </div>
+                  <div class="lrow estimated">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid">
+                      <span class="n">청첩장 제작</span>
+                      <span class="m"><span class="badge est">예상</span><span class="payer bride"><i></i>예신</span></span>
+                    </span>
+                    <span class="r"><span class="money-md" style="color:var(--muted)">₩250,000</span><span class="bodysm">날짜 미정</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--joint-soft);color:var(--muted)">상견</span>
+                    <span class="mid">
+                      <span class="n">상견례 식사</span>
+                      <span class="m"><span class="bodysm">한일관</span><span class="payer groom"><i></i>예랑</span><span class="badge stage">전액</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩384,000</span><span class="bodysm num">07.05 · 카드</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grouphead"><span class="g">2026년 8월</span><span class="s">₩2,390,000</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:#FEF3C7;color:#B45309">여행</span>
+                    <span class="mid">
+                      <span class="n">항공권</span>
+                      <span class="m"><span class="bodysm">대한항공</span><span class="payer joint"><i></i>공동</span><span class="badge stage">전액</span></span>
+                    </span>
+                    <span class="r"><span class="money-md">₩1,840,000</span><span class="bodysm num">08.14 · 계좌</span></span>
+                  </div>
+                  <div class="lrow estimated">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid">
+                      <span class="n">본식 스냅</span>
+                      <span class="m"><span class="badge est">예상</span><span class="badge stage balance">잔금</span></span>
+                    </span>
+                    <span class="r"><span class="money-md" style="color:var(--muted)">₩550,000</span><span class="bodysm">날짜 미정</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grouphead"><span class="g">2026년 9월</span><span class="s">₩4,200,000</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow estimated">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid">
+                      <span class="n">웨딩홀 잔금</span>
+                      <span class="m"><span class="badge est">예상</span><span class="badge stage balance">잔금</span><span class="bodysm">라비돌</span></span>
+                    </span>
+                    <span class="r"><span class="money-md" style="color:var(--muted)">₩4,200,000</span><span class="bodysm">날짜 미정</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fab" style="bottom:16px" aria-label="지출 추가">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+            </div>
+
+            <nav class="bnav">
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>홈</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>예산</span></a>
+              <a href="#screens" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>지출</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>결산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17 15.5a5.5 5.5 0 0 1 4.5 4.5"/></svg><span>하객</span></a>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 결산 ---------- -->
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Tab 4 — 결산</span>
+          <span class="t">자동 집계</span>
+          <span class="d">시트 <code style="font-family:var(--mono);font-size:11px">3.결산</code>의 4개 섹션 그대로 + <b>분담 정산 카드</b>. 소분류 테이블은 가로 스크롤 없이 2행으로 접었습니다.</span>
+        </div>
+        <div class="frame">
+          <div class="fold"></div>
+          <div class="app">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">결산</div>
+                <div class="sub">확정 지출 기준 · 2026.07.29</div>
+              </div>
+              <div class="iconbtn" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+              </div>
+            </div>
+
+            <div class="screen">
+              <div class="sechead"><span class="t">① 대분류 소진율</span></div>
+              <div class="card" style="gap:16px">
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <span style="display:flex;align-items:center;gap:7px"><i style="width:8px;height:8px;border-radius:2px;background:var(--c1);display:block"></i><span class="money-sm">결혼식</span></span>
+                    <span class="bodysm num"><b style="color:var(--ink)">₩1,904,000</b> / ₩13,000,000</span>
+                  </div>
+                  <div class="pbar thin" role="progressbar" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100" aria-label="결혼식 소진율 15%"><i style="width:14.6%;background:var(--c1)"></i></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <span style="display:flex;align-items:center;gap:7px"><i style="width:8px;height:8px;border-radius:2px;background:var(--c2);display:block"></i><span class="money-sm">신혼여행</span></span>
+                    <span class="bodysm num"><b style="color:var(--ink)">₩1,840,000</b> / ₩5,000,000</span>
+                  </div>
+                  <div class="pbar thin" role="progressbar" aria-valuenow="37" aria-valuemin="0" aria-valuemax="100" aria-label="신혼여행 소진율 37%"><i style="width:36.8%;background:var(--c2)"></i></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <span style="display:flex;align-items:center;gap:7px"><i style="width:8px;height:8px;border-radius:2px;background:var(--c3);display:block"></i><span class="money-sm">혼수</span></span>
+                    <span class="bodysm num"><b style="color:var(--ink)">₩0</b> / ₩5,000,000</span>
+                  </div>
+                  <div class="pbar thin" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="혼수 소진율 0%"><i style="width:0%;background:var(--c3)"></i></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <span style="display:flex;align-items:center;gap:7px"><i style="width:8px;height:8px;border-radius:2px;background:var(--c4);display:block"></i><span class="money-sm">신혼집</span></span>
+                    <span class="bodysm num"><b style="color:var(--ink)">₩0</b> / ₩3,000,000</span>
+                  </div>
+                  <div class="pbar thin" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="신혼집 소진율 0%"><i style="width:0%;background:var(--c4)"></i></div>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">② 소분류 상세</span><span class="a">정렬</span></div>
+              <div class="card tight">
+                <div class="mtable">
+                  <div class="mrow">
+                    <div class="top"><span class="nm">상견례 식사</span><span class="pct" style="color:var(--warning-ink)">96%</span></div>
+                    <div class="pbar thin"><i style="width:96%;background:var(--warning)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩400,000</b></span>
+                      <span class="kv">지출 <b>₩384,000</b></span>
+                      <span class="kv">잔액 <b style="color:var(--warning-ink)">₩16,000</b></span>
+                    </div>
+                  </div>
+                  <div class="mrow">
+                    <div class="top"><span class="nm">항공권</span><span class="pct" style="color:var(--warning-ink)">97%</span></div>
+                    <div class="pbar thin"><i style="width:97%;background:var(--warning)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩1,900,000</b></span>
+                      <span class="kv">지출 <b>₩1,840,000</b></span>
+                      <span class="kv">잔액 <b style="color:var(--warning-ink)">₩60,000</b></span>
+                    </div>
+                  </div>
+                  <div class="mrow">
+                    <div class="top"><span class="nm">스튜디오 스냅</span><span class="pct">31%</span></div>
+                    <div class="pbar thin"><i style="width:31%;background:var(--primary)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩710,000</b></span>
+                      <span class="kv">지출 <b>₩220,000</b></span>
+                      <span class="kv">잔액 <b>₩490,000</b></span>
+                    </div>
+                  </div>
+                  <div class="mrow">
+                    <div class="top"><span class="nm">드레스</span><span class="pct">27%</span></div>
+                    <div class="pbar thin"><i style="width:27%;background:var(--primary)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩1,100,000</b></span>
+                      <span class="kv">지출 <b>₩300,000</b></span>
+                      <span class="kv">잔액 <b>₩800,000</b></span>
+                    </div>
+                  </div>
+                  <div class="mrow">
+                    <div class="top"><span class="nm">웨딩홀 대관</span><span class="pct">19%</span></div>
+                    <div class="pbar thin"><i style="width:19%;background:var(--primary)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩5,200,000</b></span>
+                      <span class="kv">지출 <b>₩1,000,000</b></span>
+                      <span class="kv">잔액 <b>₩4,200,000</b></span>
+                    </div>
+                  </div>
+                  <div class="mrow">
+                    <div class="top"><span class="nm">주례</span><span class="pct" style="color:var(--muted)">0%</span></div>
+                    <div class="pbar thin"><i style="width:0%;background:var(--primary)"></i></div>
+                    <div class="bot">
+                      <span class="kv">예산 <b>₩1,000,000</b></span>
+                      <span class="kv">지출 <b>₩0</b></span>
+                      <span class="kv">잔액 <b style="color:var(--success-ink)">₩1,000,000</b></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">③ 분담 정산</span></div>
+              <div class="card">
+                <div class="settle-split">
+                  <div class="settle-box g">
+                    <span class="label" style="color:var(--groom-ink)">예랑 부담</span>
+                    <span class="money-md num">₩2,104,000</span>
+                    <span class="bodysm">직접 ₩684,000 + 공동 ½</span>
+                  </div>
+                  <div class="settle-box b">
+                    <span class="label" style="color:var(--primary)">예신 부담</span>
+                    <span class="money-md num">₩1,640,000</span>
+                    <span class="bodysm">직접 ₩220,000 + 공동 ½</span>
+                  </div>
+                </div>
+                <div class="pbar" role="progressbar" aria-valuenow="56" aria-valuemin="0" aria-valuemax="100" aria-label="예랑 예신 부담 비율">
+                  <i style="width:56.2%;background:var(--groom)"></i>
+                  <i style="width:43.8%;background:var(--bride)"></i>
+                </div>
+                <div class="settle-result">
+                  절반씩 나누려면 <b>예신 → 예랑 ₩232,000</b> 보내면 정산 완료
+                  <div class="bodysm" style="margin-top:3px">총 확정 지출 ₩3,744,000 · 1인 목표 ₩1,872,000</div>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">④ 월별 타임라인</span></div>
+              <div class="card">
+                <div class="chart">
+                  <div class="plot">
+                    <div class="grid-l" style="top:6px"></div>
+                    <div class="grid-l" style="top:41px"></div>
+                    <div class="grid-l" style="top:76px"></div>
+                    <div class="grid-l" style="bottom:0"></div>
+                    <div class="mgroup">
+                      <div class="bars"><div class="bar c" style="height:45%"></div><div class="bar e" style="height:6%"></div></div>
+                      <span class="mlab">7월</span>
+                    </div>
+                    <div class="mgroup">
+                      <div class="bars"><div class="bar c" style="height:44%"></div><div class="bar e" style="height:13%"></div></div>
+                      <span class="mlab">8월</span>
+                    </div>
+                    <div class="mgroup">
+                      <div class="bars"><div class="bar c" style="height:1%"></div><div class="bar e" style="height:100%"></div></div>
+                      <span class="mlab">9월</span>
+                    </div>
+                    <div class="mgroup">
+                      <div class="bars"><div class="bar c" style="height:1%"></div><div class="bar e" style="height:1%"></div></div>
+                      <span class="mlab">10월</span>
+                    </div>
+                    <div class="mgroup">
+                      <div class="bars"><div class="bar c" style="height:1%"></div><div class="bar e" style="height:1%"></div></div>
+                      <span class="mlab">11월</span>
+                    </div>
+                  </div>
+                  <div class="plegend">
+                    <span><i class="dot solid"></i>확정</span>
+                    <span><i class="dot hatch"></i>예상(날짜 미정)</span>
+                  </div>
+                  <div class="bodysm">9월 예상 지출 ₩4,200,000 — 웨딩홀 잔금이 몰려 있습니다</div>
+                </div>
+              </div>
+            </div>
+
+            <nav class="bnav">
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>홈</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>예산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>지출</span></a>
+              <a href="#screens" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>결산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17 15.5a5.5 5.5 0 0 1 4.5 4.5"/></svg><span>하객</span></a>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 하객 ---------- -->
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Tab 5 — 하객</span>
+          <span class="t">하객 · 축의금</span>
+          <span class="d">3개 신호(경조사 참석 · 청첩장 모임 · 친분)로 참석을 예측하고, 최소보증인원과의 갭을 게이지로 보여줍니다. 맨 아래 <b>최종 손익</b>이 이 앱의 차별점.</span>
+        </div>
+        <div class="frame">
+          <div class="fold"></div>
+          <div class="app">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">하객</div>
+                <div class="sub">28팀 · 예상 207명</div>
+              </div>
+              <div class="iconbtn" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+            </div>
+
+            <div class="screen">
+              <div class="seg rose">
+                <span class="on">전체</span><span>예랑</span><span>예신</span>
+              </div>
+
+              <div class="card" style="gap:13px">
+                <div class="gauge">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between">
+                    <span class="label">예상 참석 인원</span>
+                    <span class="money-md num">207명</span>
+                  </div>
+                  <div class="gtrack" role="progressbar" aria-valuenow="207" aria-valuemin="0" aria-valuemax="250" aria-label="예상 참석 207명, 최소보증 220명">
+                    <i class="fill" style="width:82.8%"></i>
+                    <i class="mark" style="left:88%"></i>
+                    <span class="lbl">207 / 최소보증 220</span>
+                  </div>
+                </div>
+                <div class="warn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                  <div class="tx">
+                    <span class="tt">최소보증인원보다 13명 부족</span>
+                    <span class="td">부족분 식대 ₩910,000이 추가 청구됩니다 (1인 ₩70,000 기준)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">예상 축의금</span>
+                  <span class="money-lg">₩16,560,000</span>
+                  <span class="bodysm">207명 × ₩80,000</span>
+                </div>
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">실제 수령</span>
+                  <span class="money-lg" style="color:var(--muted)">₩0</span>
+                  <span class="bodysm">예식 후 입력</span>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">명단</span><span class="a">신호 기준 보기</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--groom-soft);color:var(--groom-ink)">랑</span>
+                    <span class="mid">
+                      <span class="n">교회 청년부</span>
+                      <span class="m"><span class="badge stage" style="background:var(--success-soft);color:var(--success-ink)">신호 3/3</span><span class="bodysm">본인 + 동행 149</span></span>
+                    </span>
+                    <span class="r"><span class="money-md num">150명</span><span class="bodysm" style="color:var(--success-ink)">참석 예상</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--groom-soft);color:var(--groom-ink)">랑</span>
+                    <span class="mid">
+                      <span class="n">범수네 가족</span>
+                      <span class="m"><span class="badge stage" style="background:var(--success-soft);color:var(--success-ink)">신호 3/3</span><span class="bodysm">본인 + 동행 19</span></span>
+                    </span>
+                    <span class="r"><span class="money-md num">20명</span><span class="bodysm" style="color:var(--success-ink)">참석 예상</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--primary)">신</span>
+                    <span class="mid">
+                      <span class="n">큰이모</span>
+                      <span class="m"><span class="badge stage" style="background:var(--success-soft);color:var(--success-ink)">신호 2/3</span><span class="bodysm">본인 + 동행 3</span></span>
+                    </span>
+                    <span class="r"><span class="money-md num">4명</span><span class="bodysm" style="color:var(--success-ink)">참석 예상</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--primary)">신</span>
+                    <span class="mid">
+                      <span class="n">회사 마케팅팀</span>
+                      <span class="m"><span class="badge stage" style="background:var(--success-soft);color:var(--success-ink)">신호 1/3</span><span class="bodysm">본인 + 동행 11</span></span>
+                    </span>
+                    <span class="r"><span class="money-md num">12명</span><span class="bodysm" style="color:var(--success-ink)">참석 예상</span></span>
+                  </div>
+                  <div class="lrow" style="opacity:.62">
+                    <span class="ic" style="background:var(--joint-soft);color:var(--muted)">신</span>
+                    <span class="mid">
+                      <span class="n">대학 동기 (지방)</span>
+                      <span class="m"><span class="badge stage">신호 0/3</span><span class="bodysm">본인 + 동행 2</span></span>
+                    </span>
+                    <span class="r"><span class="money-md num">—</span><span class="bodysm">불참 예상</span></span>
+                  </div>
+                  <div class="lrow" style="justify-content:center;color:var(--primary);font-size:14px;font-weight:600">
+                    23팀 더 보기
+                  </div>
+                </div>
+              </div>
+
+              <div class="sechead"><span class="t">최종 손익</span></div>
+              <div class="card" style="gap:11px;border-color:color-mix(in srgb, var(--success) 34%, transparent);background:var(--success-soft)">
+                <span class="label">예상 축의금 − 결혼식 예산</span>
+                <span class="display" style="color:var(--success-ink)">+₩3,180,000</span>
+                <div style="display:flex;flex-direction:column;gap:5px;padding-top:2px;border-top:1px solid color-mix(in srgb, var(--success) 22%, transparent)">
+                  <div style="display:flex;justify-content:space-between"><span class="bodysm">예상 축의금</span><span class="money-sm num">₩16,560,000</span></div>
+                  <div style="display:flex;justify-content:space-between"><span class="bodysm">결혼식 예산 합계</span><span class="money-sm num">−₩13,380,000</span></div>
+                  <div style="display:flex;justify-content:space-between"><span class="bodysm">보증인원 부족 추가분</span><span class="money-sm num" style="color:var(--warning-ink)">−₩910,000</span></div>
+                </div>
+                <span class="bodysm">보증인원 미달분까지 반영하면 <b style="color:var(--success-ink)">+₩2,270,000</b></span>
+              </div>
+            </div>
+
+            <nav class="bnav">
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>홈</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>예산</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>지출</span></a>
+              <a href="#screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>결산</span></a>
+              <a href="#screens" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17 15.5a5.5 5.5 0 0 1 4.5 4.5"/></svg><span>하객</span></a>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================== 05 바텀시트 ============================== -->
+  <section class="sec" id="sheet">
+    <div class="sec-head">
+      <span class="sec-num">05 / SHEET</span>
+      <h2>빠른입력 바텀시트 — 가장 중요한 화면</h2>
+      <p>
+        상담 현장에서 한 손으로 30초 안에 끝나야 하는 화면입니다. 금액이 먼저 자동 포커스되고,
+        중분류/소분류는 최근 사용 3개를 칩으로 먼저 띄웁니다. 날짜를 비우면 자동으로 예상 지출이 됩니다.
+      </p>
+    </div>
+
+    <div class="frames">
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Sheet — 지출 추가</span>
+          <span class="t">기본 상태</span>
+          <span class="d">금액 → 분류 → 결제자 → 수단 → 단계 → 날짜 → 업체 → 메모 → 저장. 저장 버튼 48px, 시트 최대 높이 85dvh + safe-area 패딩.</span>
+        </div>
+        <div class="frame">
+          <div class="app" style="min-height:812px;position:relative">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">지출</div>
+                <div class="sub">총 7건 · 확정 ₩3,744,000</div>
+              </div>
+            </div>
+            <div class="screen" style="opacity:.55">
+              <div class="grouphead"><span class="g">2026년 7월</span><span class="s">₩2,154,000</span></div>
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid"><span class="n">스튜디오 스냅</span><span class="m"><span class="payer bride"><i></i>예신</span></span></span>
+                    <span class="r"><span class="money-md">₩220,000</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid"><span class="n">웨딩홀 대관</span><span class="m"><span class="payer joint"><i></i>공동</span></span></span>
+                    <span class="r"><span class="money-md">₩1,000,000</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sheet-shade"></div>
+            <div class="sheet">
+              <div class="handle"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="sheet-title">지출 추가</span>
+                <span class="bodysm">취소</span>
+              </div>
+
+              <div class="field">
+                <span class="label">금액</span>
+                <div class="input amount">
+                  <span>220,000</span>
+                  <span class="cur">원</span>
+                </div>
+                <div class="quick"><span>+1만</span><span>+10만</span><span>+100만</span><span>지우기</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">분류 · 최근</span>
+                <div class="recent">
+                  <span class="on">스드메 › 스튜디오 스냅</span>
+                  <span>예식 › 웨딩홀</span>
+                  <span>스드메 › 드레스</span>
+                </div>
+                <div class="grid2">
+                  <div class="input"><span>스드메</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                  <div class="input"><span>스튜디오 스냅</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                </div>
+              </div>
+
+              <div class="field">
+                <span class="label">결제자</span>
+                <div class="seg rose"><span>예랑</span><span class="on">예신</span><span>공동</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">수단</span>
+                <div class="seg"><span class="on">현금</span><span>카드</span><span>상품권</span><span>계좌</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">단계</span>
+                <div class="seg"><span class="on">계약금</span><span>중도금</span><span>잔금</span><span>전액</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">날짜</span>
+                <div class="input"><span>2026-07-27</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                </div>
+                <div class="check">
+                  <span class="bx" style="background:transparent;border-color:var(--line)"></span>
+                  <span style="color:var(--muted)">날짜 미정 — 예상 지출로 기록</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <span class="label">업체</span>
+                <div class="input"><span>모스앤코튼</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">메모</span>
+                <div class="input ph"><span>선택 입력</span></div>
+              </div>
+
+              <div class="btn lg">저장</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Sheet — 변형</span>
+          <span class="t">"날짜 미정" 체크 상태</span>
+          <span class="d">체크하는 순간 날짜 입력이 비활성화되고 <b>"예상" 배지 프리뷰</b>가 뜹니다 — 저장 전에 이 건이 예상 지출이 된다는 사실이 화면에 드러나야 합니다.</span>
+        </div>
+        <div class="frame" style="min-height:auto">
+          <div class="app" style="min-height:auto">
+            <div class="sheet" style="position:static;box-shadow:none;border-radius:0;padding-top:14px">
+              <div class="handle"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="sheet-title">지출 추가</span>
+                <span class="badge est">예상 지출로 저장됩니다</span>
+              </div>
+
+              <div class="field">
+                <span class="label">금액</span>
+                <div class="input amount"><span>4,200,000</span><span class="cur">원</span></div>
+                <div class="quick"><span>+1만</span><span>+10만</span><span>+100만</span><span>지우기</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">단계</span>
+                <div class="seg"><span>계약금</span><span>중도금</span><span class="on" style="color:var(--warning-ink)">잔금</span><span>전액</span></div>
+              </div>
+
+              <div class="field">
+                <span class="label">날짜</span>
+                <div class="input" style="opacity:.42;border-style:dashed">
+                  <span>—</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                </div>
+                <div class="check">
+                  <span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4 10-10"/></svg></span>
+                  <span>날짜 미정 — 예상 지출로 기록</span>
+                </div>
+                <div class="warn" style="background:var(--primary-soft);border-color:color-mix(in srgb, var(--primary) 26%, transparent)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="color:var(--primary)"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                  <div class="tx">
+                    <span class="tt" style="color:var(--primary)">월별 예상 금액에 반영됩니다</span>
+                    <span class="td">확정 지출 합계·소진율에는 포함되지 않습니다. 날짜가 정해지면 확정으로 전환하세요.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="btn lg">저장</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 06 다크 ============================== -->
+  <section class="sec" id="dark">
+    <div class="sec-head">
+      <span class="sec-num">06 / DARK</span>
+      <h2>다크 모드 토큰</h2>
+      <p>
+        토글(next-themes)은 계획대로 P6에 붙이지만, <strong>토큰은 지금 정의</strong>합니다.
+        나중에 붙이면 화면마다 색을 다시 뒤져야 하기 때문입니다. 다크에서 로즈는 그대로 쓰면 어두운 바탕에서 탁해져
+        <code style="font-family:var(--mono);font-size:12px">#FB7185</code>(rose-400)로 밝혀 씁니다 — 카드 배경 대비 6.55:1로 AA 통과.
+      </p>
+    </div>
+
+    <div class="frames">
+      <div class="fwrap">
+        <div class="fcap">
+          <span class="n">Dark — 홈</span>
+          <span class="t">동일 화면, 다크 토큰</span>
+          <span class="d">단순 반전이 아니라 각 토큰의 대응값을 따로 정의했습니다. 사선 패턴·점선 테두리는 <code style="font-family:var(--mono);font-size:11px">color-mix</code>로 액센트에서 파생돼 자동으로 따라옵니다.</span>
+        </div>
+        <div class="frame" style="border-color:#2A272B;background:#0F0E10">
+          <div class="app dark" style="min-height:auto">
+            <div class="statusbar">
+              <span>9:41</span>
+              <span class="icons"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+            </div>
+            <div class="appbar">
+              <div>
+                <div class="h">우리 결혼</div>
+                <div class="sub">2026년 11월 14일 토요일</div>
+              </div>
+            </div>
+            <div class="screen">
+              <div class="card" style="gap:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <span class="label">결혼식까지</span>
+                  <span class="badge" style="background:var(--primary);color:#1A0A0E;font-weight:700">D-108</span>
+                </div>
+                <div>
+                  <div class="label" style="margin-bottom:4px">총 예산 대비 지출</div>
+                  <div class="display">₩3,744,000</div>
+                  <div class="bodysm">전체 예산 ₩26,000,000 중 <b style="color:var(--ink)">14%</b> 집행</div>
+                </div>
+                <div class="pbar" role="progressbar" aria-valuenow="34" aria-valuemin="0" aria-valuemax="100" aria-label="총 예산 소진율">
+                  <i class="pfill" style="width:14.4%"></i>
+                  <i class="pest" style="width:19.2%"></i>
+                </div>
+                <div class="plegend">
+                  <span><i class="dot solid"></i>확정 ₩3,744,000</span>
+                  <span><i class="dot hatch"></i>예상 ₩5,000,000</span>
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">남은 예산</span>
+                  <span class="money-lg" style="color:var(--success)">₩22,256,000</span>
+                  <span class="bodysm">예상 반영 시 ₩17,256,000</span>
+                </div>
+                <div class="card" style="gap:5px;padding:14px">
+                  <span class="label">이번 달 (7월)</span>
+                  <span class="money-lg">₩1,904,000</span>
+                  <span class="bodysm">예상 +₩250,000</span>
+                </div>
+              </div>
+
+              <div class="warn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                <div class="tx">
+                  <span class="tt">잔금 미납 2건</span>
+                  <span class="td">웨딩홀 ₩4,200,000 · 본식 스냅 ₩550,000</span>
+                </div>
+              </div>
+
+              <div class="card tight">
+                <div class="list">
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+                    <span class="mid"><span class="n">스튜디오 스냅</span><span class="m"><span class="payer bride"><i></i>예신</span><span class="badge stage">계약금</span></span></span>
+                    <span class="r"><span class="money-md">₩220,000</span><span class="bodysm num">07.27</span></span>
+                  </div>
+                  <div class="lrow">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid"><span class="n">웨딩홀 · 라비돌</span><span class="m"><span class="payer joint"><i></i>공동</span><span class="badge stage">계약금</span></span></span>
+                    <span class="r"><span class="money-md">₩1,000,000</span><span class="bodysm num">07.18</span></span>
+                  </div>
+                  <div class="lrow estimated">
+                    <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+                    <span class="mid"><span class="n">청첩장</span><span class="m"><span class="badge est">예상</span><span class="payer bride"><i></i>예신</span></span></span>
+                    <span class="r"><span class="money-md" style="color:var(--muted)">₩250,000</span><span class="bodysm">7월 중</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fwrap" style="width:420px">
+        <div class="fcap">
+          <span class="n">Dark — 토큰 대응표</span>
+          <span class="t">라이트 → 다크</span>
+          <span class="d">면 계열은 낮추고 텍스트·액센트는 올립니다. 경고/성공은 다크에서 오히려 대비가 확보돼 별도 "본문용 대체" 토큰이 필요 없습니다.</span>
+        </div>
+        <div class="tbl-scroll">
+          <table class="tokens">
+            <thead><tr><th>토큰</th><th>라이트</th><th>다크</th></tr></thead>
+            <tbody>
+              <tr><td class="name">bg</td><td class="hex"><span class="sw" style="background:#F6F5F6"></span> #F6F5F6</td><td class="hex"><span class="sw" style="background:#0F0E10"></span> #0F0E10</td></tr>
+              <tr><td class="name">card</td><td class="hex"><span class="sw" style="background:#FFFFFF"></span> #FFFFFF</td><td class="hex"><span class="sw" style="background:#1A181B"></span> #1A181B</td></tr>
+              <tr><td class="name">line</td><td class="hex"><span class="sw" style="background:#EAE7E9"></span> #EAE7E9</td><td class="hex"><span class="sw" style="background:#2A272B"></span> #2A272B</td></tr>
+              <tr><td class="name">ink</td><td class="hex"><span class="sw" style="background:#18181B"></span> #18181B</td><td class="hex"><span class="sw" style="background:#F4F2F3"></span> #F4F2F3</td></tr>
+              <tr><td class="name">muted</td><td class="hex"><span class="sw" style="background:#71717A"></span> #71717A</td><td class="hex"><span class="sw" style="background:#A1999D"></span> #A1999D</td></tr>
+              <tr><td class="name">primary</td><td class="hex"><span class="sw" style="background:#E11D48"></span> #E11D48</td><td class="hex"><span class="sw" style="background:#FB7185"></span> #FB7185</td></tr>
+              <tr><td class="name">warning</td><td class="hex"><span class="sw" style="background:#D97706"></span> #D97706</td><td class="hex"><span class="sw" style="background:#FBBF24"></span> #FBBF24</td></tr>
+              <tr><td class="name">success</td><td class="hex"><span class="sw" style="background:#059669"></span> #059669</td><td class="hex"><span class="sw" style="background:#34D399"></span> #34D399</td></tr>
+              <tr><td class="name">payer-groom</td><td class="hex"><span class="sw" style="background:#0EA5E9"></span> #0EA5E9</td><td class="hex"><span class="sw" style="background:#38BDF8"></span> #38BDF8</td></tr>
+              <tr><td class="name">payer-bride</td><td class="hex"><span class="sw" style="background:#E11D48"></span> #E11D48</td><td class="hex"><span class="sw" style="background:#FB7185"></span> #FB7185</td></tr>
+              <tr><td class="name">payer-joint</td><td class="hex"><span class="sw" style="background:#71717A"></span> #71717A</td><td class="hex"><span class="sw" style="background:#A1A1AA"></span> #A1A1AA</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 07 컴포넌트 ============================== -->
+  <section class="sec" id="parts">
+    <div class="sec-head">
+      <span class="sec-num">07 / PARTS</span>
+      <h2>컴포넌트 갤러리</h2>
+      <p>
+        시안에 쓰인 조각들. 진행률·게이지·소진율 바는 전부 <code style="font-family:var(--mono);font-size:12px">div + role="progressbar"</code>로 만듭니다 —
+        Recharts보다 가볍고, 스크린리더가 값을 읽고, 다크 대응이 자동입니다.
+        <strong>Recharts는 월별 타임라인 하나에만</strong> 씁니다.
+      </p>
+    </div>
+
+    <div class="gallery">
+      <div class="gcell">
+        <div class="gh"><span class="gn">money/payer-chip</span><span class="gd">색 + 텍스트 라벨 병기</span></div>
+        <div class="gb app">
+          <span class="payer groom"><i></i>예랑</span>
+          <span class="payer bride"><i></i>예신</span>
+          <span class="payer joint"><i></i>공동</span>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">money/stage-badge</span><span class="gd">잔금만 앰버로 승격</span></div>
+        <div class="gb app">
+          <span class="badge stage">계약금</span>
+          <span class="badge stage">중도금</span>
+          <span class="badge stage balance">잔금</span>
+          <span class="badge stage">전액</span>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">money/estimate-badge</span><span class="gd">점선 = 예상. 색 없이도 구분</span></div>
+        <div class="gb app">
+          <span class="badge est">예상</span>
+          <span class="badge stage" style="background:var(--success-soft);color:var(--success-ink)">확정</span>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">data/dual-progress-bar</span><span class="gd">확정(실선) + 예상(사선)</span></div>
+        <div class="gb app col">
+          <div class="pbar" role="progressbar" aria-valuenow="34" aria-valuemin="0" aria-valuemax="100" aria-label="예시 진행률"><i class="pfill" style="width:14.4%"></i><i class="pest" style="width:19.2%"></i></div>
+          <div class="plegend"><span><i class="dot solid"></i>확정</span><span><i class="dot hatch"></i>예상</span></div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">layout/segmented-control</span><span class="gd">38px 높이 + 3px 패딩 = 44px</span></div>
+        <div class="gb app col">
+          <div class="seg rose"><span>예랑</span><span class="on">예신</span><span>공동</span></div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">ui/button</span><span class="gd">44 / 48 / 36px 스케일</span></div>
+        <div class="gb app">
+          <span class="btn">저장</span>
+          <span class="btn ghost">취소</span>
+          <span class="btn sm">필터</span>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">data/warning-banner</span><span class="gd">면은 D97706, 글자는 B45309</span></div>
+        <div class="gb app col">
+          <div class="warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            <div class="tx"><span class="tt">배분액을 ₩380,000 초과</span><span class="td">배분을 늘리거나 세부 항목을 줄이세요</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">money/amount-input</span><span class="gd">26px · numeric · 퀵버튼</span></div>
+        <div class="gb app col">
+          <div class="input amount"><span>220,000</span><span class="cur">원</span></div>
+          <div class="quick"><span>+1만</span><span>+10만</span><span>+100만</span></div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">data/empty-state</span><span class="gd">fixture=empty에서 전 탭 확인</span></div>
+        <div class="gb app col" style="padding:0">
+          <div class="empty">
+            <span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"/></svg></span>
+            <span class="et">아직 기록한 지출이 없어요</span>
+            <span class="ed">오른쪽 아래 + 버튼으로 첫 지출을 남겨보세요</span>
+            <span class="btn sm" style="margin-top:4px">지출 추가</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">data/gauge</span><span class="gd">예상 참석 vs 최소보증 갭</span></div>
+        <div class="gb app col">
+          <div class="gtrack" role="progressbar" aria-valuenow="207" aria-valuemin="0" aria-valuemax="250" aria-label="예상 참석 207명">
+            <i class="fill" style="width:82.8%"></i>
+            <i class="mark" style="left:88%"></i>
+            <span class="lbl">207 / 최소보증 220</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">data/list-row</span><span class="gd">최소 56px · 예상은 사선 배경</span></div>
+        <div class="gb app col" style="padding:0">
+          <div class="list" style="background:var(--card)">
+            <div class="lrow">
+              <span class="ic" style="background:var(--bride-soft);color:var(--c1)">스드</span>
+              <span class="mid"><span class="n">스튜디오 스냅</span><span class="m"><span class="payer bride"><i></i>예신</span></span></span>
+              <span class="r"><span class="money-md">₩220,000</span></span>
+            </div>
+            <div class="lrow estimated">
+              <span class="ic" style="background:var(--bride-soft);color:var(--c1)">예식</span>
+              <span class="mid"><span class="n">청첩장</span><span class="m"><span class="badge est">예상</span></span></span>
+              <span class="r"><span class="money-md" style="color:var(--muted)">₩250,000</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gcell">
+        <div class="gh"><span class="gn">charts/monthly-timeline</span><span class="gd">Recharts를 쓰는 유일한 자리</span></div>
+        <div class="gb app col">
+          <div class="plot" style="height:96px">
+            <div class="mgroup"><div class="bars"><div class="bar c" style="height:45%"></div><div class="bar e" style="height:6%"></div></div><span class="mlab">7월</span></div>
+            <div class="mgroup"><div class="bars"><div class="bar c" style="height:44%"></div><div class="bar e" style="height:13%"></div></div><span class="mlab">8월</span></div>
+            <div class="mgroup"><div class="bars"><div class="bar c" style="height:1%"></div><div class="bar e" style="height:100%"></div></div><span class="mlab">9월</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 08 결정 ============================== -->
+  <section class="sec" id="decisions">
+    <div class="sec-head">
+      <span class="sec-num">08 / OPEN</span>
+      <h2>구현 전 결정이 필요한 것</h2>
+      <p>시안을 그리면서 플랜만 봐서는 드러나지 않았던 것들입니다. 이 네 가지가 정해지면 바로 구현에 들어갈 수 있습니다.</p>
+    </div>
+
+    <div class="decisions">
+      <div class="dec">
+        <span class="k">01</span>
+        <div class="v">
+          <span class="q">로즈 하나가 세 가지 의미를 갖습니다 — primary · 예신 · 결혼식</span>
+          <span class="a">
+            <code>#E11D48</code>이 CTA색이자 예신 색이자 결혼식 대분류 색입니다. 결산 화면에서 로즈 막대가 "결혼식"인지 "예신"인지 색만으로는 알 수 없습니다.
+            시안에서는 <strong>라벨 병기로 막아뒀지만</strong>, 근본 해결은 둘 중 하나입니다 —
+            (a) 결제자 팔레트를 액센트와 분리(예신 <code>#DB2777</code> 핑크로 이동), 또는
+            (b) 결제자는 아예 무채색 + 라벨로만 표기하고 색은 대분류 전용으로 예약.
+            <strong>(b)를 권합니다</strong> — 결제자는 이미 텍스트로 읽히고, 색 예산을 대분류에 몰아주는 편이 차트가 깔끔합니다.
+          </span>
+        </div>
+      </div>
+
+      <div class="dec">
+        <span class="k">02</span>
+        <div class="v">
+          <span class="q">"예상 지출"이 총 지출 숫자에 포함되는가</span>
+          <span class="a">
+            시안은 <strong>확정만 총액</strong>으로 잡고 예상은 별도 계열로 뒀습니다(홈의 dual bar, 결산 ①은 확정 기준).
+            시트의 원래 동작은 예상을 월별 타임라인에만 반영합니다. 다만 예비부부 입장에서 "결국 얼마 나가나"는 확정+예상이라,
+            홈의 대표 숫자를 어느 쪽으로 둘지는 취향 문제입니다. 지금 시안은 확정을 크게, 예상을 보조로 두었습니다.
+          </span>
+        </div>
+      </div>
+
+      <div class="dec">
+        <span class="k">03</span>
+        <div class="v">
+          <span class="q">최종 손익의 비교 대상 — 결혼식 <em>예산</em>인가 <em>지출</em>인가</span>
+          <span class="a">
+            플랜에는 <code>Σ실제 축의금 − Σ결혼식 지출</code>로 되어 있는데, 예식 전에는 지출이 아직 안 끝나서 손익이 과대하게 잡힙니다.
+            시안은 <strong>예식 전 = 예상 축의금 − 결혼식 예산 합계</strong>, 예식 후 = 실제 축의금 − 실제 지출로 자동 전환하는 안을 그렸습니다.
+            보증인원 미달 추가 식대도 손익에 넣었는데, 이건 플랜에 없던 항목이라 확인이 필요합니다.
+          </span>
+        </div>
+      </div>
+
+      <div class="dec">
+        <span class="k">04</span>
+        <div class="v">
+          <span class="q">Pretendard를 npm으로 받을 것인가, 서브셋만 self-host 할 것인가</span>
+          <span class="a">
+            <code>pretendard@1.3.9</code> 패키지는 모든 포맷을 포함해 <code>node_modules</code>가 ~98MB 늘어납니다.
+            배포 번들에는 실제 참조되는 woff2만 들어가 런타임 영향은 없지만, 저장소가 부담되면
+            <code>public/fonts/</code>에 variable dynamic-subset만 복사해 self-host 하는 대안이 있습니다(복사 스크립트가 하나 늘어남).
+            <strong>일단 npm 설치를 권합니다</strong> — 버전 관리가 되고, 나중에 self-host로 옮기는 건 언제든 가능합니다.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <div><strong>이 시안에서 하지 않은 것</strong> — Supabase 연결·인증·실제 CRUD(P1~P5) / 다크 모드 토글(P6, 토큰만 정의) / 스와이프 수정·삭제(P3) / PWA 아이콘 PNG(P6) / 체크리스트·웨딩홀 비교(2차 백로그).</div>
+      <div><strong>구현 시 검증할 것</strong> — 실제 Pretendard woff2가 네트워크에 내려오는지 · 렌더된 터치 타깃이 전부 ≥44px인지 · <code>?fixture=sheet</code>에서 시트 실측치(총지출 ₩220,000 · 스냅 31% · 잔액 ₩490,000 · 예신 ₩220,000 / 예랑 ₩0)가 재현되는지 · <code>?fixture=empty</code>에서 5탭이 안 깨지는지 · 그레이스케일 강제 렌더에서 확정/예상 구분이 살아있는지.</div>
+    </div>
+  </section>
+
+</div>
