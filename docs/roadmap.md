@@ -17,14 +17,76 @@ Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, �
 |---|---|---|---|
 | **P0 셋업** | ✅ 완료 | Next.js + TS + Tailwind + shadcn 초기화, Supabase 스캐폴드, PWA manifest, 하단탭 셸 | 빈 5탭이 모바일에서 이동됨 |
 | **PD 디자인** | ✅ 완료 | 토큰·타입 스케일·44px 밀도 확정, 컴포넌트 16종, 목업 fixtures, 5탭 + `/design` 퍼블리싱 | 시안이 곧 P2~P6의 뼈대 |
-| **P1 인증/스페이스** | ⬜ 다음 | 로그인, `couples`/`couple_members`/`couple_invites`, RLS, **카테고리 트리 시드**, 설정 화면 CRUD | 커플 2인이 같은 스페이스 진입 |
+| **P1 인증/스페이스** | ⬜ 다음 | 로그인, `couples`/`couple_members`/`couple_invites`, RLS, **카테고리 트리 시드**, 설정 화면 CRUD | 커플 2인이 같은 스페이스 진입 (→ 아래 상세) |
 | **P2 예산** | ⬜ | 총 가용예산, 대분류 배분, 소분류 예산 편집(업체·링크·메모), 배분 초과 경고 | 시트 `1.예산` 대체 |
 | **P3 지출** | ⬜ | 빠른입력 바텀시트 저장, 원장 필터/수정/삭제, 스와이프, 예상 지출 플래그, 잔금 단계 | 시트 `2.지출` 대체 |
 | **P4 결산** | ⬜ | 집계 View/RPC, 소진율·소분류 테이블·분담 정산·월별 타임라인 | 시트 `3.결산` 대체 |
 | **P5 하객/축의금** | ⬜ | 명단 CRUD, 참석 예측, 보증인원 갭, 축의금 입력, **최종 손익** | 시트 `보증인원` 대체 + 차별화 |
 | **P6 마감** | ⬜ | 저축 목표, 로딩·에러 처리, 다크모드 토글(next-themes), 접근성 점검, PWA 아이콘 | 배포 |
 
-**2차 백로그**: 체크리스트(D-day 트랙) · 웨딩홀 점수 비교 · CSV/구글시트 임포트 · 영수증 사진 첨부 · 푸시 알림(잔금 D-7)
+**2차 백로그**: 체크리스트(D-day 트랙) · 웨딩홀 점수 비교 · CSV/구글시트 임포트 · 영수증 사진 첨부 ·
+푸시 알림(잔금 D-7) · **카카오 OAuth 로그인**(→ D-014)
+
+---
+
+## P1 상세 — 인증 · 커플 스페이스
+
+기능 정의는 [product.md 「인증 · 온보딩 · 설정」](./product.md#인증--온보딩--설정-p1),
+화면 규격은 [design-system.md 6-b절](./design-system.md#6-b-p1-화면-규격-인증--온보딩--설정).
+
+### 선행 조건 — 사용자가 직접 해야 함 🔴
+
+**Supabase 프로젝트 생성.** 브라우저 로그인이 필요해 대신 못 한다.
+생성 후 `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
+`SUPABASE_PROJECT_REF`를 채우면(`.env.local.example` 참고) 나머지는 진행 가능하다.
+이게 없으면 `isSupabaseConfigured`가 false라 `proxy.ts`가 세션 갱신을 건너뛴다.
+
+### 작업 순서
+
+**1. 스키마 · RLS**
+- [ ] `couples` · `couple_members` · `couple_invites` 마이그레이션
+      (`couple_members`에 `UNIQUE(couple_id, side)` — 3인 진입 차단)
+- [ ] `current_couple_id()` `SECURITY DEFINER` 헬퍼 — `couple_members` 자기 참조 재귀 회피
+- [ ] 전 테이블 RLS 정책
+- [ ] `redeem_invite(code)` RPC — 초대 테이블 직접 SELECT는 막고 이 경로로만 사용
+- [ ] `categories` · `payment_methods` 마이그레이션 + 시드 SQL (대4/중11/소25, 결제수단 12)
+- [ ] 스페이스 생성 시 시드를 복사하는 트리거 또는 RPC
+- [ ] `lib/supabase/types.ts` 생성 타입 갱신
+
+**2. 인증**
+- [ ] `/login` — 이메일 매직링크 (전송 후 "메일 보냈어요" 상태 + 60초 재전송 쿨다운)
+- [ ] `/auth/callback` — 세션 심고 멤버 유무로 분기
+- [ ] `proxy.ts` — 미인증은 `/login`, 스페이스 없으면 `/onboarding`으로 보내기
+
+**3. 온보딩**
+- [ ] `/onboarding` — 새로 만들기 / 초대 코드로 참여
+- [ ] `/onboarding/wedding` — 예식일 · 총 가용예산 (나머지 3개는 기본값)
+
+**4. 설정 CRUD**
+- [ ] 폼 컴포넌트 + shadcn 프리미티브 7종 수령 후 48px/16px 규격화
+- [ ] `/settings/wedding` — 예식 정보 5개 필드
+- [ ] `/settings/invite` — 코드 발급 · 복사 · 공유 · 멤버 목록
+- [ ] `/settings/categories` — 3단 트리, 추가/이름변경/순서변경/보관
+- [ ] `/settings/payment-methods` — 활성화 토글 + 라벨 편집
+- [ ] `/settings/savings` — 저축 목표 (P1 중 가장 후순위)
+
+**5. 목업 → 실데이터 전환**
+- [ ] `fixtures.ts`의 예식 정보·카테고리·결제수단을 Supabase 쿼리로 교체
+      (예산·지출·하객은 P2·P3·P5까지 목업 유지)
+- [ ] `MOCK_TODAY` 제거 검토 — D-day를 실제 예식일로 계산 (→ D-013)
+
+### P1 완료 판정
+
+- [ ] 계정 A로 가입 → 스페이스 생성 → 예식 정보 입력 → 홈에서 **내가 넣은 예식일로 D-day가 뜬다**
+- [ ] 계정 A가 초대 코드 발급 → 계정 B가 참여 → **양쪽이 같은 스페이스**를 본다
+- [ ] 계정 B의 역할이 A의 반대(예랑↔예신)로 자동 배정된다
+- [ ] 코드 1회 사용 후 재사용 시 거부, 만료 후 거부, 이미 2명이면 발급 거부
+- [ ] 카테고리에 소분류를 추가하면 **지출 빠른입력의 선택지에 나타난다**
+- [ ] 카테고리를 보관하면 새 지출 선택지에서 빠지되 **기존 지출·결산에는 남는다**
+- [ ] 결제수단을 비활성화하면 빠른입력에서 사라진다
+- [ ] **RLS**: 계정 C(다른 커플)로 로그인해 A의 `couple_id`로 조회 시 0건
+- [ ] **RLS**: 초대 코드 테이블을 직접 SELECT 시도 시 거부
+- [ ] `npm run lint && npm run build` 무경고
 
 ---
 
