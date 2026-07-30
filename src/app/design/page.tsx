@@ -88,6 +88,14 @@ const COLOR_TOKENS = [
     usage: "칩 · 차트 · 텍스트 전부",
     fallback: null,
   },
+  {
+    token: "--payer-other",
+    hex: "#8B5CF6",
+    ratio: "4.06:1",
+    pass: false,
+    usage: "칩의 점 · 차트 면. chart-5와 같은 색",
+    fallback: "--payer-other-strong #6D28D9 (7.10:1)",
+  },
 ] as const;
 
 const TYPE_SCALE = [
@@ -406,6 +414,7 @@ export default function DesignPage() {
             <PayerChip payer="groom" />
             <PayerChip payer="bride" />
             <PayerChip payer="joint" />
+            <PayerChip payer="other" />
           </Cell>
 
           <Cell name="money/stage-badge" caption="잔금만 앰버로 승격">

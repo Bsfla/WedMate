@@ -144,7 +144,7 @@ export default async function ReportPage({
             </ul>
           </Panel>
 
-          {/* ③ 분담 정산 — 공동계좌 지출은 양쪽에 1/2씩 귀속시킨다. */}
+          {/* ③ 분담 정산 — 공동계좌 지출은 양쪽에 1/2씩, 기타(제3자)는 아예 빼고 계산한다. */}
           <SectionHeader title="③ 분담 정산" />
           <Panel>
             <div className="grid grid-cols-2 gap-2.5">
@@ -163,6 +163,16 @@ export default async function ReportPage({
                 </span>
               </div>
             </div>
+
+            {settlement.otherTotal > 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-payer-other-soft px-3 py-2.5">
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-caption text-payer-other-strong">기타 · 제3자 지원</span>
+                  <span className="text-body-sm text-muted-foreground">분담 정산에서 제외</span>
+                </span>
+                <MoneyText value={settlement.otherTotal} size="sm" />
+              </div>
+            )}
 
             <div
               role="img"
@@ -187,7 +197,8 @@ export default async function ReportPage({
                 </p>
               )}
               <p className="num mt-1 text-body-sm text-muted-foreground">
-                총 확정 지출 {formatWon(settlement.total)} · 1인 목표 {formatWon(settlement.perPerson)}
+                커플 부담 합계 {formatWon(settlement.total)} · 1인 목표{" "}
+                {formatWon(settlement.perPerson)}
               </p>
             </div>
           </Panel>

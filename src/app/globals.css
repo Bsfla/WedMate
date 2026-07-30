@@ -107,6 +107,10 @@
   --color-payer-joint-strong: var(--payer-joint-strong);
   --color-payer-joint-soft: var(--payer-joint-soft);
 
+  --color-payer-other: var(--payer-other);
+  --color-payer-other-strong: var(--payer-other-strong);
+  --color-payer-other-soft: var(--payer-other-soft);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -165,6 +169,10 @@
   --payer-joint: #71717a;
   --payer-joint-strong: #71717a;
   --payer-joint-soft: #f4f4f5;
+  /* 기타(제3자) — chart-5와 같은 바이올렛 계열로 맞췄다. */
+  --payer-other: #8b5cf6; /* 4.06:1 — 점·막대 전용 */
+  --payer-other-strong: #6d28d9; /* 7.10:1 — 텍스트용 */
+  --payer-other-soft: #f5f3ff;
 
   --chart-1: #e11d48; /* 결혼식 */
   --chart-2: #f59e0b; /* 신혼여행 */
@@ -231,6 +239,9 @@
   --payer-joint: #a1a1aa;
   --payer-joint-strong: #a1a1aa;
   --payer-joint-soft: #26242a;
+  --payer-other: #a78bfa;
+  --payer-other-strong: #a78bfa;
+  --payer-other-soft: #221b33;
 
   --chart-1: #fb7185;
   --chart-2: #fbbf24;

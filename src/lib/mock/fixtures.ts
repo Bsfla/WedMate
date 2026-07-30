@@ -226,6 +226,21 @@ const RICH_EXPENSES: RawExpense[] = [
     stage: "deposit",
     vendor: "라비돌",
   },
+  {
+    // 제3자(부모님) 지출 — 분담 정산에서 빠지는 경로를 화면에서 확인하려고 넣었다. → D-023
+    id: "e-yedan",
+    major: "wedding",
+    mid: "예단",
+    minor: "예단·예물",
+    amount: 1_200_000,
+    year: 2026,
+    month: 7,
+    day: 20,
+    payer: "other",
+    method: "cash",
+    stage: "full",
+    memo: "예랑 부모님 지원",
+  },
   SHEET_EXPENSE,
   {
     id: "e-invitation",
@@ -657,8 +672,11 @@ export type SettlementView = {
   groomDirect: number;
   brideDirect: number;
   jointTotal: number;
+  /** 제3자(부모님 등)가 낸 확정 지출. 커플 돈이 아니라 아래 계산에서 전부 빠진다. → D-023 */
+  otherTotal: number;
   groomBurden: number;
   brideBurden: number;
+  /** 커플이 부담한 확정 지출 합. `otherTotal`은 포함하지 않는다. */
   total: number;
   perPerson: number;
   /** 정산해야 할 금액. 0이면 이미 균등하다. */
@@ -691,6 +709,8 @@ export function getMockReport(key: FixtureKey): ReportView {
   const groomDirect = sum(confirmed.filter((e) => e.payer === "groom").map((e) => e.amount));
   const brideDirect = sum(confirmed.filter((e) => e.payer === "bride").map((e) => e.amount));
   const jointTotal = sum(confirmed.filter((e) => e.payer === "joint").map((e) => e.amount));
+  // 기타는 제3자 돈이라 아래 부담·정산 계산에 일절 들어가지 않는다. → D-023
+  const otherTotal = sum(confirmed.filter((e) => e.payer === "other").map((e) => e.amount));
 
   // 공동계좌 지출은 양쪽에 1/2씩 귀속시킨다.
   const groomBurden = groomDirect + jointTotal / 2;
@@ -726,6 +746,7 @@ export function getMockReport(key: FixtureKey): ReportView {
       groomDirect,
       brideDirect,
       jointTotal,
+      otherTotal,
       groomBurden,
       brideBurden,
       total,

@@ -18,7 +18,7 @@ type SegmentedControlProps<T extends string> = {
 };
 
 /**
- * 2~4분기 선택. 예랑|예신|공동, 확정|예상 등.
+ * 2~4분기 선택. 예랑|예신|공동|기타, 확정|예상 등.
  * 버튼 높이는 38px이지만 컨테이너 패딩 3px을 더해 44px 터치 영역을 만든다.
  */
 export function SegmentedControl<T extends string>({

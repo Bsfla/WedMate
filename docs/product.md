@@ -190,8 +190,12 @@ P1을 막는다 — 백로그로 미루고, `couple_members`가 `user_id`만 참
 
 ### 5) 결제수단 관리
 
-`결제자 3 × 수단 4 = 12` 조합. 시트에서는 `예신 현금`처럼 한 문자열이었으나 두 축으로 쪼갰다(→ D-002).
+`결제자 4 × 수단 4 = 16` 조합. 시트에서는 `예신 현금`처럼 한 문자열이었으나 두 축으로 쪼갰다(→ D-002).
 **결제자를 따로 떼야 분담 정산이 계산되기 때문**이다.
+
+결제자는 `예랑 · 예신 · 공동 · 기타` 4종이다(→ D-023). **공동과 기타는 다르다** —
+공동은 커플 공동계좌라 분담 정산에 절반씩 귀속되고, 기타(부모님 등 제3자)는 커플 돈이 아니라
+정산에서 전액 빠진 채 결산에 별도 줄로만 표시된다.
 
 - 안 쓰는 조합은 비활성화(`is_active = false`)해 빠른입력의 선택지를 줄인다.
 - `label`에 실제 이름을 붙인다 — `공동 계좌` → "신한 공동통장".
@@ -240,10 +244,10 @@ categories         id, couple_id, level('major'|'mid'|'minor'), parent_id(self F
                    name, sort_order, is_archived
                    -- 가입 시 기본 트리(대4/중11/소25)를 커플 소유로 복사 시드
                    -- 삭제하지 않고 is_archived로 감춘다 (지출이 참조 중이므로)
-payment_methods    id, couple_id, payer('groom'|'bride'|'joint'),
+payment_methods    id, couple_id, payer('groom'|'bride'|'joint'|'other'),
                    method('cash'|'card'|'voucher'|'account'), label, is_active
-                   -- ⚠️ 원본 시트에는 '기타'(부모님 등 제3자) 결제자가 있었으나
-                   --    현재 구현은 3종뿐이다 → decisions.md O-005 참조
+                   -- 'other'는 부모님 등 제3자. 분담 정산에서 제외된다 → D-023
+                   -- 시드는 4 × 4 = 16 조합
 
 budget_allocations couple_id, category_id(major), amount           -- 대분류 배분
 budgets            id, couple_id, category_id(minor), amount,

@@ -6,7 +6,11 @@
  */
 
 export type MajorKey = "wedding" | "honeymoon" | "household" | "home";
-export type Payer = "groom" | "bride" | "joint";
+/**
+ * `other`는 부모님 등 **제3자가 낸 돈**이다. 커플 돈이 아니므로 분담 정산에서 제외된다
+ * (`joint`는 커플 공동계좌라 양쪽에 절반씩 귀속된다 — 둘은 다른 개념이다). → D-023
+ */
+export type Payer = "groom" | "bride" | "joint" | "other";
 export type Method = "cash" | "card" | "voucher" | "account";
 export type Stage = "deposit" | "interim" | "balance" | "full";
 export type Side = "groom" | "bride";
@@ -37,7 +41,11 @@ export const PAYER_LABEL: Record<Payer, string> = {
   groom: "예랑",
   bride: "예신",
   joint: "공동",
+  other: "기타",
 };
+
+/** 분담 정산에 들어가는 결제자 — `other`(제3자)는 빠진다. */
+export const SETTLED_PAYERS: readonly Payer[] = ["groom", "bride", "joint"] as const;
 
 export const METHOD_LABEL: Record<Method, string> = {
   cash: "현금",
@@ -58,7 +66,7 @@ export const SIDE_LABEL: Record<Side, string> = {
   bride: "예신",
 };
 
-export const PAYERS: readonly Payer[] = ["groom", "bride", "joint"] as const;
+export const PAYERS: readonly Payer[] = ["groom", "bride", "joint", "other"] as const;
 export const METHODS: readonly Method[] = ["cash", "card", "voucher", "account"] as const;
 export const STAGES: readonly Stage[] = ["deposit", "interim", "balance", "full"] as const;
 
@@ -81,5 +89,10 @@ export const PAYER_TOKEN: Record<Payer, { dot: string; text: string; soft: strin
     dot: "var(--payer-joint)",
     text: "text-payer-joint-strong",
     soft: "bg-payer-joint-soft",
+  },
+  other: {
+    dot: "var(--payer-other)",
+    text: "text-payer-other-strong",
+    soft: "bg-payer-other-soft",
   },
 };

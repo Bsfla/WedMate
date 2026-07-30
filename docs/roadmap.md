@@ -5,11 +5,14 @@
 
 ## 현재 지점
 
-**2026-07-29 — Phase PD 완료.** 다음은 **P1 (인증 · 커플 스페이스)**.
+**2026-07-30 — P1 착수.** Supabase 프로젝트 연결 완료, O-005 해소(→ D-023).
 
 5탭 + `/design`이 목업 데이터로 실제 렌더되며 lint/build 통과, 7개 라우트 × 3개 fixture 전부 200.
-Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, 그래서 `lib/supabase/env.ts`의
-`isSupabaseConfigured`가 false → `proxy.ts`가 세션 갱신을 건너뛴다. P1에서 실제 프로젝트를 연결해야 한다.
+
+- ✅ **Supabase 연결** — `.env.local`에 URL/publishable key/project ref를 채웠다.
+  `isSupabaseConfigured`가 true가 되어 `proxy.ts`가 세션 갱신을 수행한다. (프로젝트 ref `knhqinlfoadvndlkraii`)
+- ✅ **결제자 4종화** — `other`(제3자) 추가. 분담 정산에서 제외되고 결산에 별도 줄로 뜬다.
+- ⬜ 다음: P1-1 스키마 · RLS 마이그레이션
 
 ## 단계
 
@@ -36,10 +39,11 @@ Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, �
 
 ### 선행 조건 — 사용자가 직접 해야 함 🔴
 
-**Supabase 프로젝트 생성.** 브라우저 로그인이 필요해 대신 못 한다.
-생성 후 `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
-`SUPABASE_PROJECT_REF`를 채우면(`.env.local.example` 참고) 나머지는 진행 가능하다.
-이게 없으면 `isSupabaseConfigured`가 false라 `proxy.ts`가 세션 갱신을 건너뛴다.
+- [x] **Supabase 프로젝트 생성** (2026-07-30 완료). `.env.local`에 URL / publishable key /
+      project ref를 채웠고 `isSupabaseConfigured`가 true다.
+- [ ] **Auth 리다이렉트 URL 등록** — 매직링크(2단계 「인증」)를 붙이기 전에 대시보드
+      Authentication → URL Configuration에서 Site URL `http://localhost:3000`,
+      Redirect URLs에 `http://localhost:3000/auth/callback`을 추가해야 한다.
 
 ### 작업 순서
 
@@ -49,7 +53,8 @@ Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, �
 - [ ] `current_couple_id()` `SECURITY DEFINER` 헬퍼 — `couple_members` 자기 참조 재귀 회피
 - [ ] 전 테이블 RLS 정책
 - [ ] `redeem_invite(code)` RPC — 초대 테이블 직접 SELECT는 막고 이 경로로만 사용
-- [ ] `categories` · `payment_methods` 마이그레이션 + 시드 SQL (대4/중11/소25, 결제수단 12)
+- [ ] `categories` · `payment_methods` 마이그레이션 + 시드 SQL
+      (대4/중11/소25, 결제수단 **4 × 4 = 16** — `other` 포함, → D-023)
 - [ ] 스페이스 생성 시 시드를 복사하는 트리거 또는 RPC
 - [ ] `lib/supabase/types.ts` 생성 타입 갱신
 
@@ -110,7 +115,7 @@ Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, �
 |---|---|---|---|
 | 결산 | 총 확정 지출 | `₩220,000` | ✅ |
 | 결산 | 스튜디오 스냅 진행률 / 잔액 | `31%` / `₩490,000` | ✅ |
-| 결산 | 결제자별 | 예신 `₩220,000` · 예랑 `₩0` | ✅ |
+| 결산 | 결제자별 | 예신 `₩220,000` · 예랑 `₩0` · 공동 `₩0` · 기타 `₩0` | ✅ |
 | 결산 | 월별 타임라인 | 2026년 7월에만 `220,000` | ⚠️ 미확인 |
 | 예산 | 결혼식 세부 합 | `₩13,380,000` | ✅ |
 | 예산 | **배분 초과 경고** (시트에 없는 개선분) | 배분 13,000,000 < 세부 합 → `₩380,000 초과` | ✅ |
@@ -119,6 +124,8 @@ Supabase 프로젝트는 아직 미생성이라 `.env.local`이 비어 있고, �
 | 하객 | 예상 축의금 | `₩16,560,000` | ✅ |
 
 `rich` 세트 추가 검증 — 분담 정산: 예랑 `₩2,104,000` / 예신 `₩1,640,000` → `예신 → 예랑 ₩232,000` ✅
+`rich`의 기타(제3자) 지출 `₩1,200,000`(예단·예물)은 위 세 수치에 **영향을 주지 않아야 한다** —
+커플 부담 합계 `₩3,744,000`과 별개 줄로 뜬다. (→ D-023)
 
 ### 아직 확인 못 한 것
 
