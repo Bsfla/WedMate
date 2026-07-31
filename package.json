@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:reset": "npx --yes supabase db reset --local",
+    "db:push": "npx --yes supabase db push",
+    "db:types": "npx --yes supabase gen types typescript --linked > src/lib/supabase/types.ts",
+    "db:types:local": "npx --yes supabase gen types typescript --local > src/lib/supabase/types.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

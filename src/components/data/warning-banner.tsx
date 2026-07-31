@@ -8,6 +8,11 @@ type WarningBannerProps = {
   description?: ReactNode;
   /** info는 경고가 아니라 안내 — 예상 지출 설명처럼 로즈 톤을 쓰는 자리. */
   tone?: "warning" | "info";
+  /**
+   * 조치 버튼. **"배분액을 늘리세요"라고 쓰고 늘릴 방법을 주지 않으면 경고가 아니라 잔소리다.**
+   * `Button size="sm"` 또는 링크 하나만 넣는다. (→ D-042)
+   */
+  action?: ReactNode;
   className?: string;
 };
 
@@ -16,6 +21,7 @@ export function WarningBanner({
   title,
   description,
   tone = "warning",
+  action,
   className,
 }: WarningBannerProps) {
   const Icon = tone === "warning" ? TriangleAlert : Info;
@@ -35,7 +41,7 @@ export function WarningBanner({
         strokeWidth={1.9}
         className={cn("mt-px size-[18px] shrink-0", tone === "warning" ? "text-warning" : "text-primary")}
       />
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p
           className={cn(
             "text-body-sm font-semibold",
@@ -45,6 +51,7 @@ export function WarningBanner({
           {title}
         </p>
         {description && <p className="text-caption font-normal text-muted-foreground">{description}</p>}
+        {action && <div className="pt-2">{action}</div>}
       </div>
     </div>
   );

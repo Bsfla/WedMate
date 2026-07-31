@@ -34,7 +34,9 @@ export function StatTile({
         <span className="text-caption text-muted-foreground">{label}</span>
         {badge}
       </div>
-      <MoneyText value={value} size={size} signed={signed} className={valueClassName} />
+      {/* 2칸 그리드의 내부 폭은 375px에서 ≈138px이라 1억 이상은 잘린다.
+          `compact="auto"`가 그 지점부터만 축약한다(정확한 금액은 title로 남는다). */}
+      <MoneyText className={valueClassName} compact="auto" signed={signed} size={size} value={value} />
       {caption && <p className="text-body-sm text-muted-foreground">{caption}</p>}
     </Panel>
   );

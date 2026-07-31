@@ -46,11 +46,14 @@ export function SegmentedControl<T extends string>({
             aria-checked={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "flex h-[38px] flex-1 items-center justify-center rounded-[9px] text-sm font-semibold tracking-tight transition-colors",
+              "flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-[9px] px-1",
+              "truncate text-body font-semibold transition-colors",
               "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
               selected
                 ? cn(
-                    "bg-card shadow-[0_1px_3px_rgba(0,0,0,0.09)]",
+                    // 그림자 값을 직접 적지 않는다 — 라이트의 검정 알파는 어두운 바탕에서
+                    // 사라져 선택 상태가 색으로만 남는다(D-006 위반). 토큰이 테마별로 다르다.
+                    "bg-card shadow-raised",
                     tone === "rose" ? "text-primary" : "text-foreground",
                   )
                 : "text-muted-foreground",

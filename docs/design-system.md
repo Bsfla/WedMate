@@ -69,6 +69,14 @@ P0에서 Next.js 셸(하단 5탭 · Supabase 스캐폴드 · PWA)까지 끝났�
 - `word-break: keep-all` — 한글이 단어 중간에서 끊기는 것을 막는다. `@layer base`에 전역 적용.
 - 금액·수량은 전부 `font-variant-numeric: tabular-nums`. Pretendard가 tnum을 지원하므로 별도 모노 폰트 없이 리스트에서 자릿수가 정렬된다.
 
+🔴 **스케일을 추가하면 `lib/utils.ts`의 `cn()`에도 같이 등록한다 (→ D-044).**
+tailwind-merge는 모르는 `text-*`를 색 클래스로 분류해서, 같은 `cn()` 안의 색이 크기를 밀어낸다.
+등록을 빠뜨리면 **크기가 조용히 사라지고 빌드도 린트도 잡아주지 않는다.**
+
+**문구 규칙 — 금액 뒤에 조사를 붙이지 않는다.**
+받침 유무에 따라 조사가 갈리는데 금액은 끝자리가 매번 달라진다 (`₩250,002이` ✗ / `₩250,000이` ✓).
+`{금액} 남았어요`처럼 조사 없이 끊거나, `남은 예산 {금액}`처럼 어순을 바꾼다.
+
 ---
 
 ## 2. 컬러 토큰
@@ -102,6 +110,50 @@ P0에서 Next.js 셸(하단 5탭 · Supabase 스캐폴드 · PWA)까지 끝났�
 
 ---
 
+## 2-b. 브랜드 — WedMate 마크 (→ D-035)
+
+마크는 **진행률 링**이다. 결혼반지이면서 동시에 예산 소진율 게이지 — 앱 전체가 진행률 바·게이지로
+말하므로 아이콘과 제품이 같은 시각 언어를 쓴다.
+
+```
+viewBox 512 · 링 cx=256 cy=256 r=150 stroke-width=64 · 호 = 둘레의 70%, 12시 시작
+바깥 반지름 182 ≤ 204.8  (maskable 안전영역 = 512 × 80% ÷ 2)
+```
+
+**round cap 보정** — round cap은 dash 양 끝에 `stroke-width/2`씩 **더** 그린다.
+`dasharray`에서 `stroke-width`를 빼야 실제 비율이 된다. 빼먹으면 0.70이 0.77로 보인다.
+
+**같은 기하가 세 곳에 있다.** 색 모델이 달라 코드를 공유할 수 없고 비율만 공유한다 —
+**하나를 고치면 셋 다 고친다.**
+
+| 파일 | 용도 | 색 |
+|---|---|---|
+| `components/brand/brand-mark.tsx` | 앱 내부 | 트랙 `stroke-muted`, 호 `stroke-primary` (테마 따라감) |
+| `lib/brand/app-icon.tsx` | `ImageResponse` 래스터 원본 | 로즈 면 + 흰 링(트랙 32%) |
+| `app/icon.svg` | 정적 파비콘 | 같음 |
+
+`BrandLockup`(마크 + 워드마크 + 보조 문구)은 로그인과 온보딩이 같이 쓴다. **좌측 정렬을 유지한다** —
+한글 태그라인이 `keep-all`로 2줄이 되면 중앙 정렬은 래그가 깨지고, 마크 좌변과 입력 좌변이
+만드는 수직선도 사라진다. 워드마크는 SVG가 아니라 `text-display` 텍스트다(전용 서체가 없다).
+
+마크 뒤의 카드 플레이트는 장식이 아니라 **기능**이다 — 웨시 위에 마크를 직접 얹으면 `--muted`
+트랙이 배경과 붙어 링이 사라진다.
+
+### `auth-wash` — 인증 화면의 온기 (→ D-038)
+
+```css
+@utility auth-wash {
+  background-image: radial-gradient(130% 90% at 50% 0%,
+    var(--primary-soft) 0%, var(--background) 68%);
+}
+```
+
+정지점 **둘 다 미리 섞어 둔 불투명 토큰**이다. `color-mix()`도 `transparent` 알파 보간도 쓰지 않는다 —
+D-012의 지뢰가 정확히 여기다. 끝 정지점이 `--background`와 같은 값이라 이음매가 없다.
+`(auth)/layout.tsx`에 `aria-hidden` div로 얹는다(컨테이너에 `isolate`, 웨시는 `-z-10`).
+
+---
+
 ## 3. 밀도 — 44px 규칙
 
 `src/components/ui/button.tsx`의 `size` variant를 모바일 밀도로 **교체**한다.
@@ -117,11 +169,54 @@ P0에서 Next.js 셸(하단 5탭 · Supabase 스캐폴드 · PWA)까지 끝났�
 
 기타 밀도 규칙: 리스트 행 최소 높이 56px · 아이콘 버튼 44px · 인접 터치 타깃 간 최소 8px · 입력 필드 폰트 16px 이상(iOS 포커스 시 자동 확대 방지 — 이 때문에 `maximum-scale=1`로 확대를 막지 않아도 된다).
 
+### 세로 리듬 — 간격은 화면이 아니라 컴포넌트가 갖는다 (→ D-039)
+
+| 자리 | 값 | 누가 정하나 |
+|---|---|---|
+| 본문 직계 자식 사이 | **16px** | `layout/screen.tsx`의 `gap-4` |
+| 섹션 헤더 **위** | 20px | `SectionHeader`의 `mt-1` |
+| 섹션 헤더 **아래** | **8px** | `SectionHeader`의 `-mb-2` |
+| 패널 내부 요소 사이 | 12px | `Panel`의 `gap-3` |
+| 패널 패딩 | 16px (`StatTile`은 14px) | `Panel`의 `p-4` |
+| 좌우 화면 패딩 | 16px (인증 셸만 24px) | `Screen`의 `px-4` |
+
+**화면 파일에서 `mt-*` · `pt-*`로 간격을 덧대지 않는다.** 헤더가 위아래 같은 간격으로 뜨면
+어느 블록의 제목인지 읽히지 않는다 — 그래서 헤더가 스스로 아래쪽에 붙는다. 화면이 여기에
+`pt-1`을 더하기 시작하면 탭마다 리듬이 다시 어긋난다.
+
+### 표면 높이(elevation) — `--elevation-*` (→ D-041)
+
+이 앱의 기본 표면은 그림자가 아니라 **1px 테두리**다. 그림자는 **떠 있는 것**에만 쓴다.
+
+| 유틸 | 쓰는 곳 |
+|---|---|
+| `shadow-raised` | 세그먼트의 선택된 알약, 팝오버 |
+| `shadow-float` | 바텀시트, FAB |
+
+**그림자 값을 클래스에 직접 적지 않는다.** 라이트의 검정 알파는 어두운 바탕에서 사라져
+선택 상태가 색으로만 남는다(D-006 위반). 다크 값은 `inset 0 0 0 1px rgba(255,255,255,.08)`을
+앞에 둬 안쪽 하이라이트가 "떠 있음"을 만들게 한다.
+
+### 틴트 면(`Panel tone`) 위에 무엇을 얹을 때 (→ D-048)
+
+| 얹는 것 | 쓰는 값 | 쓰면 안 되는 값 |
+|---|---|---|
+| 구분선 | `border-current/12` | `border-border/70` — 틴트 면에서 사라진다 |
+| 배지 면 | `bg-card` + `border-{tone}/45` | `bg-warning/15` — 불투명 폴백에서 뒤집힌다 (D-012) |
+| 목록 | 톤을 벗기고 `bg-card` | 톤 유지 — 다크에서 행 구분선이 사라진다 |
+
+톤은 **"이 블록에 문제가 있다"는 요약의 신호**이지 항목 하나하나의 상태가 아니다.
+초과된 대분류 카드에서도 앰버는 요약 블록까지고, 소분류 목록은 `bg-card`로 되돌린다.
+
 ---
 
 ## 4. 만들 컴포넌트
 
-shadcn에서 추가로 받을 것: `input`, `label`, `badge`, `separator`, `select`, `checkbox`, `switch`, `skeleton`.
+shadcn에서 추가로 받을 것: `input`, `label`, `separator`, `select`, `checkbox`, `switch`, `skeleton`
+— **7종. P1에서 수령 완료** (2026-07-31, 아래 6-b절).
+
+`badge`는 받지 않았다. `money/estimate-badge`·`money/stage-badge`가 이미 도메인 규칙(점선·사선 패턴·
+잔금 승격)을 담고 있어 범용 badge를 얹으면 두 벌이 된다.
 
 **바텀시트는 shadcn `drawer`를 쓰지 않는다.** 현재 shadcn drawer는 Base UI 기반으로 바뀌어, `-b radix`로 init한 이 프로젝트에 두 번째 프리미티브 라이브러리를 끌고 들어온다. 이미 설치된 `radix-ui`(v1.6.7)의 Dialog 위에 직접 만든다 — 새 의존성 0개, 44px·safe-area·드래그 핸들을 우리가 통제할 수 있다.
 
@@ -151,9 +246,53 @@ src/components/
     monthly-timeline.tsx  Recharts. 월별 확정/예상 2계열 막대
 ```
 
+**공용 레이어 2차 (2026-07-31)** — 5탭이 같은 조립을 손으로 다시 짜던 것들을 뽑았다.
+
+```
+data/
+  panel.tsx           tone="default|accent|success|warning|muted" 추가.
+                      화면이 `bg-success-soft border-success/35`를 손으로 적지 않는다
+  section-header.tsx  meta(우측 보조 수치) · description · level="section|sub" 추가.
+                      간격(위 20 / 아래 8)을 스스로 갖는다 (→ D-039)
+  list-row.tsx        href/onClick 추가 — 행 전체가 터치 타깃이 되고 › 표식이 붙는다.
+                      설정·카테고리 관리가 56px 행을 다시 짜지 않는다
+  data-row.tsx        ★신규 DataRow / DataRowGroup — "라벨 — 값" 한 줄 (→ D-040)
+  error-state.tsx     ★신규 ErrorState(화면 단위) / InlineError(부분 실패) (→ D-043)
+  skeletons.tsx       ★신규 Header/HeroPanel/StatGrid/List/ChipRow/ScreenSkeleton (→ D-043)
+  empty-state.tsx     action 강조 · bordered(점선) 추가 (→ D-042)
+  warning-banner.tsx  action 슬롯 추가 (→ D-042)
+layout/
+  chip.tsx            ★신규 Chip / ChipRow / ChipDivider — 필터·선택 칩 단일 규격
+  screen.tsx          블록 리듬 16px (→ D-039)
+app/(app)/
+  loading.tsx         ★신규 그룹 기본 로딩 골격
+  error.tsx           ★신규 그룹 에러 경계 — 하단 탭이 살아남는다
+```
+
+**칩은 `layout/chip.tsx` 하나만 쓴다.** 지출 필터(h-9 소프트)와 빠른입력 최근분류(h-8 솔리드)가
+각자 다른 칩을 들고 있었다. 같은 제스처인데 생김새가 다르면 학습이 이어지지 않는다.
+`variant="soft"`(필터) / `"solid"`(선택이 곧 입력값)로만 가른다.
+
+### 상태 설계 — 기본 상태만 그린 화면은 미완성이다 (→ D-042 · D-043)
+
+| 상태 | 무엇을 쓰나 | 확인 |
+|---|---|---|
+| 빈 상태 | `EmptyState` + **`action` 필수** | `?fixture=empty`로 5탭 |
+| 로딩 | `data/skeletons.tsx` 조각. 라우트별 `loading.tsx` | 레이아웃 점프 없을 것 |
+| 화면 단위 에러 | `ErrorState` + 라우트별 `error.tsx` | 하단 탭이 남는가 |
+| 부분 실패 | `InlineError` — 그 자리에만 | 나머지가 계속 동작하는가 |
+| 제출 중 | 버튼 비활성 + 문구 변경 + 이전 에러 제거 | `login-form.tsx`가 기준선 |
+
+에러 문구는 **무엇이 잘못됐고 어떻게 고치는지** 쓴다. "오류가 발생했습니다"는 쓰지 않는다.
+
 **Recharts는 월별 타임라인 하나에만 쓴다.** 소진율 바·게이지·진행률은 전부 div + `role="progressbar"`로 만든다 — 더 가볍고, 스크린리더가 값을 읽고, 다크모드 대응이 자동이다. `recharts@3.10.1`은 React 19 peer를 공식 지원한다(확인 완료).
 
 기존 `src/lib/format.ts`를 그대로 재사용한다 — `formatWon` / `formatCompactWon`(차트 축·좁은 칩 전용) / `formatPercent` / `formatDday` / `clampedPercent`. 새 포맷 함수를 만들지 않는다.
+
+**좁은 칸의 큰 금액** — `MoneyText compact="auto"`는 **1억 이상일 때만** 축약한다.
+타입 스케일이 9단 고정이라 글자를 줄여 맞출 수 없고, 375px 2칸 그리드의 내부 폭은
+≈138px이라 `money-lg`(24px)로 11자를 넘기면 잘린다. `StatTile`은 이미 `auto`가 기본이다.
+축약해도 정확한 금액은 `title` 속성에 남는다 — 표시상의 타협이지 정보를 버리는 게 아니다.
 
 ---
 
@@ -267,14 +406,34 @@ components/data/
   copy-field.tsx       초대 코드 표시 + 복사/공유 버튼
 ```
 
-### shadcn 프리미티브 — 여기서 받는다
+### shadcn 프리미티브 — ✅ 수령·규격화 완료 (2026-07-31)
 
-O-003에서 미룬 것들을 P1에서 받는다. 실제 폼이 생기는 시점이기 때문이다.
+O-003에서 미룬 것들을 P1에서 받았다. 실제 폼이 생기는 시점이기 때문이다.
 
 `input` · `label` · `select` · `checkbox` · `switch` · `separator` · `skeleton`
 
-**받은 직후 반드시 할 일**: nova 프리셋은 데스크톱 밀도(h-8 등)라 `button.tsx`와 똑같이
-48px/16px 규격으로 손보고, 각 파일 상단에 shadcn 덮어쓰기 경고 주석을 남긴다.
+nova 프리셋의 데스크톱 밀도를 48px/16px로 손봤고, 각 파일 상단에 **무엇을 왜 바꿨는지**를
+표로 남겼다. `npx shadcn add`를 다시 돌리면 덮어써지므로 그 표대로 되돌린다.
+
+| 프리미티브 | nova 기본값 | 이 저장소 |
+|---|---|---|
+| `input` | `h-8` 32px, `md:text-sm` | `h-12` 48px, 16px 고정 |
+| `select` 트리거 | `h-8` / `h-7` | `h-12` 48px / `h-11` 44px |
+| `select` 항목 | `py-1` ≈26px | `min-h-11` 44px |
+| `checkbox` | 16px, 히트 40×32 | 20px, 히트 **44×44** |
+| `switch` | 32×18.4, 히트 56×36 | 40×24, 히트 **64×44** |
+| `label` | `text-sm` 14px | `text-body` 15px + `min-h-11` |
+| `separator` `skeleton` | — | 변경 없음(밀도 문제 없음) |
+
+**`md:text-sm`은 지웠다.** 16px 미만이면 iOS가 포커스 시 자동 확대하는데, 확대 봉인은
+접근성 위반이라 폰트로 푸는 게 이 프로젝트의 규칙이다(3절). 데스크톱 폭에서만 14px로
+줄이는 이 선언은 그 규칙과 충돌한다.
+
+**에러 상태는 손대지 않았다.** `--destructive`(`#e11d48`)가 `--primary`와 같은 값이라
+shadcn 기본 `aria-invalid:border-destructive`가 위 폼 필드 규격의 "테두리 `border-primary`"와
+이미 같은 결과를 낸다.
+
+실물은 [`/design` 06 / FORM](http://localhost:3000/design) 절에 있다.
 
 ---
 
@@ -286,6 +445,7 @@ O-003에서 미룬 것들을 P1에서 받는다. 실제 폼이 생기는 시점�
 | `src/lib/domain.ts` | 대분류·결제자·수단·단계 어휘 + 라벨 + `PAYER_TOKEN` |
 | `src/lib/format.ts` | 통화·비율·날짜 포맷. **금액 렌더는 반드시 여기 또는 `MoneyText`를 경유** |
 | `src/components/ui/button.tsx` | 44/48/36px size variant (⚠️ shadcn 업스트림 파일 — 아래 경고 참조) |
+| `src/components/ui/{input,label,select,checkbox,switch,separator,skeleton}.tsx` | 48px/16px로 규격화한 프리미티브 7종 (⚠️ 전부 shadcn 업스트림 파일) |
 | `src/components/{layout,money,data,charts}/*` | 컴포넌트 16종 |
 | `src/lib/mock/fixtures.ts` | `rich`/`sheet`/`empty` 3세트 + 집계 선택자 |
 | `src/app/design/page.tsx` | 스타일가이드 (살아 있는 참조) |
@@ -322,4 +482,4 @@ DoD 수치 대조는 [roadmap.md](./roadmap.md#definition-of-done--시트-실측
 
 Supabase 연결·인증·실제 CRUD(P1~P5) / 다크모드 **토글**(P6, 토큰은 정의 완료) /
 바텀시트 드래그 제스처·스와이프 수정·삭제(P3) / PWA 아이콘 PNG 192·512(P6) /
-shadcn 프리미티브 8종(→ decisions.md O-003) / 체크리스트·웨딩홀 비교(2차 백로그)
+shadcn 프리미티브 7종(→ P1에서 수령 완료, 6-b절) / 체크리스트·웨딩홀 비교(2차 백로그)

@@ -11,7 +11,7 @@ export type NavTab = {
 
 /** 하단 탭 5개. 순서가 곧 화면 순서다. */
 export const NAV_TABS: readonly NavTab[] = [
-  { href: "/", label: "홈", title: "웨딩 가계부", icon: House },
+  { href: "/", label: "홈", title: "WedMate", icon: House },
   { href: "/budget", label: "예산", title: "예산", icon: Wallet },
   { href: "/expenses", label: "지출", title: "지출", icon: Receipt },
   { href: "/report", label: "결산", title: "결산", icon: ChartPie },
@@ -36,5 +36,5 @@ export function resolveTitle(pathname: string): string {
   const extra = Object.entries(EXTRA_TITLES).find(
     ([href]) => pathname === href || pathname.startsWith(`${href}/`),
   );
-  return extra?.[1] ?? "웨딩 가계부";
+  return extra?.[1] ?? "WedMate";
 }

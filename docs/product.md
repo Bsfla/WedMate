@@ -120,25 +120,34 @@
 
 ### 1) 로그인
 
-이메일 매직링크 **하나로 시작한다**. 카카오 OAuth는 개발자 앱 등록·리다이렉트 URI·심사가 선행되어야 해서
-P1을 막는다 — 백로그로 미루고, `couple_members`가 `user_id`만 참조하므로 나중에 붙여도 스키마 변경이 없다.
+**이메일 + 비밀번호 하나로 시작한다** (→ D-033. 원래 매직링크였으나 뒤집었다).
+매직링크는 메일 발송 인프라가 없으면 P1의 2계정 테스트부터 막히고, 카카오 OAuth는 개발자 앱
+등록·심사가 선행되어야 해서 P1 전체를 막는다. 둘 다 나중에 얹을 수 있다 —
+`couple_members`가 `user_id`만 참조하므로 스키마 변경이 없다.
 
 ```
-        웨딩 가계부
+  ◔  ← 진행률 링 마크 (64px 카드 플레이트)
+
+  WedMate
   둘이 함께 쓰는 결혼 준비 가계부
 
-  [ 이메일 ____________________ ]
-  [        매직링크 받기         ]
+  [ 로그인 | 가입하기 ]          ← 세그먼티드 (tone="rose")
 
-  메일함의 링크를 누르면 로그인됩니다.
-  비밀번호는 없습니다.
+  이메일
+  [ you@example.com ___________ ]
+  비밀번호
+  [ ______________________ ]
+  6자 이상
+
+  [     가입하고 시작하기       ]
 ```
 
-전송 후에는 같은 화면이 "메일을 보냈어요" 상태로 바뀐다(재전송 60초 쿨다운). 링크는 Supabase가
-`/auth/callback`으로 돌려보내고, 콜백이 세션을 심은 뒤 아래 규칙으로 분기한다.
+가입/로그인이 끝나면 세션 쿠키가 심기고 아래 규칙으로 분기한다.
 
 - `couple_members`에 행이 있음 → `/` (홈)
 - 없음 → `/onboarding`
+
+분기 판정은 `proxy.ts`가 아니라 `(app)/layout.tsx`가 한다 (→ D-034).
 
 ### 2) 온보딩
 
@@ -236,12 +245,14 @@ couples            id, name, wedding_date, total_budget, guest_min_guarantee,
 couple_members     couple_id, user_id, side('groom'|'bride'), display_name  (PK: couple_id+user_id)
                    -- 한 couple에 side당 1명. UNIQUE(couple_id, side)로 3인 진입을 막는다.
 couple_invites     id, couple_id, code UNIQUE, side('groom'|'bride'),
-                   expires_at, used_by, used_at, created_by
+                   expires_at, used_by, used_at, revoked_at, created_by
                    -- side: 초대받는 쪽의 역할. 발급 시점에 남은 역할로 고정한다.
-                   -- 1회용 — used_by가 차면 재사용 불가. 재발급 시 이전 코드는 즉시 만료.
+                   -- 1회용 — used_by가 차면 재사용 불가. 재발급 시 이전 코드는 revoked_at으로 폐기 → D-029
 
 categories         id, couple_id, level('major'|'mid'|'minor'), parent_id(self FK),
-                   name, sort_order, is_archived
+                   name, major_key, sort_order, is_archived
+                   -- major_key: 대분류에만 있는 고정 키(wedding|honeymoon|household|home).
+                   --   이름을 바꿔도 차트 색·결산 집계가 안 끊긴다 → D-027
                    -- 가입 시 기본 트리(대4/중11/소25)를 커플 소유로 복사 시드
                    -- 삭제하지 않고 is_archived로 감춘다 (지출이 참조 중이므로)
 payment_methods    id, couple_id, payer('groom'|'bride'|'joint'|'other'),
@@ -257,7 +268,8 @@ expenses           id, couple_id, category_id(minor), amount,
                    spent_year, spent_month, spent_day NULL,
                    is_estimated GENERATED (spent_day IS NULL),
                    payment_method_id, stage('deposit'|'interim'|'balance'|'full'),
-                   vendor, memo, is_confirmed, created_by, created_at
+                   vendor, memo, created_by, created_at
+                   -- is_confirmed는 뺐다. is_estimated와 같은 사실을 두 번 저장한다 → D-026
 
 guests             id, couple_id, side, name, companion_count,
                    sig_event_attended bool, sig_invite_meeting bool, sig_close bool,
@@ -288,7 +300,7 @@ savings_goals      id, couple_id, label, target_amount, monthly_amount,
 | 소분류 진행률 | `Σ확정지출 / budget.amount` |
 | 대분류 소진율 | `Σ(하위 소분류 지출) / allocation.amount` |
 | **배분 초과 경고** | `Σ(하위 소분류 예산) > allocation.amount` 이면 경고 |
-| **분담 정산** | payer별 지출 합 → `개인부담 목표 = 총지출/2` → `정산액 = 목표 − 본인 지출액` (공동계좌 지출은 1/2씩 귀속) |
+| **분담 정산** | payer별 지출 합 → `개인부담 목표 = 커플부담합/2` → `정산액 = 목표 − 본인 지출액`. 공동계좌(`joint`)는 1/2씩 귀속, **기타(`other`)는 제3자 돈이라 전액 제외**(→ D-023) |
 | 월별 타임라인 | `GROUP BY spent_year, spent_month`, 확정/예상 2계열 분리 |
 | 예상 참석 인원 | `Σ(expected_attend가 true인 하객의 1 + companion_count)` |
 | 보증인원 갭 | `guest_min_guarantee − 예상 참석 인원` (양수면 경고) |

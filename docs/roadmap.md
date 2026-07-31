@@ -5,14 +5,29 @@
 
 ## 현재 지점
 
-**2026-07-30 — P1 착수.** Supabase 프로젝트 연결 완료, O-005 해소(→ D-023).
+**2026-07-31 — P1-1 스키마·RLS 완료.** 마이그레이션 7개가 로컬 Postgres에서 적용되고
+**DoD 실측치 8개가 전부 View에서 그대로 재현된다.**
 
 5탭 + `/design`이 목업 데이터로 실제 렌더되며 lint/build 통과, 7개 라우트 × 3개 fixture 전부 200.
 
 - ✅ **Supabase 연결** — `.env.local`에 URL/publishable key/project ref를 채웠다.
   `isSupabaseConfigured`가 true가 되어 `proxy.ts`가 세션 갱신을 수행한다. (프로젝트 ref `knhqinlfoadvndlkraii`)
 - ✅ **결제자 4종화** — `other`(제3자) 추가. 분담 정산에서 제외되고 결산에 별도 줄로 뜬다.
-- ⬜ 다음: P1-1 스키마 · RLS 마이그레이션
+- ✅ **ERD 확정** — [erd.md](./erd.md) 0절 5가지 결정 (→ D-025, D-026)
+- ✅ **P1-1 스키마·RLS** — `supabase/migrations/0001~0007`, 집계 View 5종, `types.ts` 생성
+- ✅ **원격 반영** — 호스팅 프로젝트(`wedding-budget`, ap-northeast-1, PG 17)에 `db push` 완료.
+      원격 스키마로 재생성한 타입이 로컬과 일치함을 확인했다.
+- ✅ **shadcn 프리미티브 7종** — 수령 + 48px/16px 규격화, `/design` 06 / FORM 절에 반영
+- ✅ **P1-2 인증** — 이메일+비밀번호(→ D-033), proxy 라우트 가드(→ D-034), 로그아웃.
+      `/budget` → `307 /login`, `/design`·`/login` 200으로 실동작 확인
+- ✅ **WedMate 리브랜딩 + 브랜드 자산** (→ D-035~D-038) — 진행률 링 마크,
+      `icon.svg` + `apple-icon`(180) + `mark-{192,512}.png` 전부 **빌드 시점 프리렌더** 확인.
+      스톡 Next 파비콘 제거. `design` 서브에이전트 신설(`.claude/agents/design.md`)
+- ✅ **로그인 화면 재구성** — 브랜드 로크업, `auth-wash`, 폼 에러 2계층 분리
+- ⬜ 다음: **P1-3 온보딩** — `/onboarding`(새로 만들기 / 초대 코드) ·
+      `/onboarding/wedding`(예식일 · 총예산) → `create_couple()` 호출.
+      여기서 `(app)/layout.tsx`의 스페이스 가드도 같이 붙는다
+      (🔴 그 전에 대시보드에서 `Confirm email`을 꺼야 한다 — 아래 선행 조건)
 
 ## 단계
 
@@ -41,34 +56,45 @@
 
 - [x] **Supabase 프로젝트 생성** (2026-07-30 완료). `.env.local`에 URL / publishable key /
       project ref를 채웠고 `isSupabaseConfigured`가 true다.
-- [ ] **Auth 리다이렉트 URL 등록** — 매직링크(2단계 「인증」)를 붙이기 전에 대시보드
-      Authentication → URL Configuration에서 Site URL `http://localhost:3000`,
-      Redirect URLs에 `http://localhost:3000/auth/callback`을 추가해야 한다.
+- [x] **Auth 리다이렉트 URL 등록** (2026-07-31 완료). 비밀번호 방식(D-033)으로 바꾸면서
+      당장은 쓰이지 않지만, 카카오 OAuth를 얹을 때 그대로 필요하다.
+- [ ] 🔴 **`Confirm email` 끄기** — Authentication → Sign In / Providers → Email.
+      **지금 켜져 있다** (`GET /auth/v1/settings`의 `mailer_autoconfirm: false`로 확인).
+      켜진 채로는 가입해도 세션이 안 생기고 확인 메일이 나가는데, 내장 SMTP 한도 때문에
+      2계정 테스트가 막힌다. (→ D-033)
 
 ### 작업 순서
 
-**1. 스키마 · RLS**
-- [ ] `couples` · `couple_members` · `couple_invites` 마이그레이션
+**1. 스키마 · RLS** — ✅ 완료 (2026-07-31)
+- [x] `couples` · `couple_members` · `couple_invites` 마이그레이션
       (`couple_members`에 `UNIQUE(couple_id, side)` — 3인 진입 차단)
-- [ ] `current_couple_id()` `SECURITY DEFINER` 헬퍼 — `couple_members` 자기 참조 재귀 회피
-- [ ] 전 테이블 RLS 정책
-- [ ] `redeem_invite(code)` RPC — 초대 테이블 직접 SELECT는 막고 이 경로로만 사용
-- [ ] `categories` · `payment_methods` 마이그레이션 + 시드 SQL
+- [x] `current_couple_id()` `SECURITY DEFINER` 헬퍼 — `couple_members` 자기 참조 재귀 회피
+- [x] 전 테이블 RLS 정책 (`couple_members`도 예외 없이 같은 정책 → D-030)
+- [x] `redeem_invite(code, name)` RPC — 초대 테이블 직접 SELECT는 막고 이 경로로만 사용
+      (+ `create_invite()` · `active_invite()`)
+- [x] `categories` · `payment_methods` 마이그레이션 + 시드 SQL
       (대4/중11/소25, 결제수단 **4 × 4 = 16** — `other` 포함, → D-023)
-- [ ] 스페이스 생성 시 시드를 복사하는 트리거 또는 RPC
-- [ ] `lib/supabase/types.ts` 생성 타입 갱신
+- [x] 스페이스 생성 시 시드를 복사하는 RPC — `create_couple()` + `seed_couple_defaults()`
+- [x] 집계 View 5종 (`security_invoker = on`) — DoD 수치 재현 확인
+- [x] `lib/supabase/types.ts` 생성 타입 갱신 (`npm run db:types`)
 
-**2. 인증**
-- [ ] `/login` — 이메일 매직링크 (전송 후 "메일 보냈어요" 상태 + 60초 재전송 쿨다운)
-- [ ] `/auth/callback` — 세션 심고 멤버 유무로 분기
-- [ ] `proxy.ts` — 미인증은 `/login`, 스페이스 없으면 `/onboarding`으로 보내기
+**2. 인증** — ✅ 완료 (2026-07-31, 비밀번호 방식 → D-033)
+- [x] `/login` — 이메일 + 비밀번호. 로그인/가입 세그먼티드, 서버 액션 2개
+- [x] `proxy.ts` — 미인증은 `/login`. `/login` `/auth` `/design`만 공개 (→ D-034)
+- [x] 로그아웃 — `/settings`에 배치. 2계정 테스트에 필요하다
+- [x] `components/form/field.tsx` — 라벨·도움말·에러 규격 (→ D-032)
+- [ ] 스페이스 유무로 `/onboarding` 분기 — **P1-3에서 `/onboarding`과 함께** (→ D-034)
+- ~~`/auth/callback`~~ — 비밀번호 방식에는 불필요. 카카오 OAuth를 붙일 때 만든다
 
 **3. 온보딩**
 - [ ] `/onboarding` — 새로 만들기 / 초대 코드로 참여
 - [ ] `/onboarding/wedding` — 예식일 · 총 가용예산 (나머지 3개는 기본값)
 
 **4. 설정 CRUD**
-- [ ] 폼 컴포넌트 + shadcn 프리미티브 7종 수령 후 48px/16px 규격화
+- [x] **shadcn 프리미티브 7종 수령 + 48px/16px 규격화** (2026-07-31, → D-031·D-032)
+      `input` `label` `select` `checkbox` `switch` `separator` `skeleton`.
+      `/design`의 **06 / FORM** 절에서 실물 확인. `badge`는 받지 않았다(사유는 design-system.md 4절)
+- [ ] 폼 조립 컴포넌트 — `form/{field,text-field,date-field,code-input}`
 - [ ] `/settings/wedding` — 예식 정보 5개 필드
 - [ ] `/settings/invite` — 코드 발급 · 복사 · 공유 · 멤버 목록
 - [ ] `/settings/categories` — 3단 트리, 추가/이름변경/순서변경/보관
@@ -116,12 +142,28 @@
 | 결산 | 총 확정 지출 | `₩220,000` | ✅ |
 | 결산 | 스튜디오 스냅 진행률 / 잔액 | `31%` / `₩490,000` | ✅ |
 | 결산 | 결제자별 | 예신 `₩220,000` · 예랑 `₩0` · 공동 `₩0` · 기타 `₩0` | ✅ |
-| 결산 | 월별 타임라인 | 2026년 7월에만 `220,000` | ⚠️ 미확인 |
+| 결산 | 월별 타임라인 | 2026년 7월에만 `220,000` | ⚠️ 차트 렌더 미확인 (값은 DB 검증됨) |
 | 예산 | 결혼식 세부 합 | `₩13,380,000` | ✅ |
 | 예산 | **배분 초과 경고** (시트에 없는 개선분) | 배분 13,000,000 < 세부 합 → `₩380,000 초과` | ✅ |
 | 하객 | 예상 참석 인원 | `207명` | ✅ |
 | 하객 | 보증인원 갭 | `13명 부족` (최소보증 220) | ✅ |
 | 하객 | 예상 축의금 | `₩16,560,000` | ✅ |
+
+**DB 검증 (2026-07-31)** — 위 8개 수치를 로컬 Postgres에 시드해 집계 View로 다시 뽑았고 **전부 일치**한다.
+목업(`?fixture=sheet`)과 View가 같은 답을 낸다는 뜻이라, P2~P5에서 화면을 실데이터로 갈아끼울 때
+수치가 바뀌면 그건 회귀다. 같이 확인된 것:
+
+| 확인한 것 | 결과 |
+|---|---|
+| 시드 개수 | 대 4 / 중 11 / 소 25 / 결제수단 16 |
+| 계정 B가 코드로 참여 | 같은 스페이스 · 역할 자동 반대 배정(`groom` → `bride`) |
+| 코드 재발급 | 이전 코드 폐기, 미폐기 코드 항상 1개 |
+| 잘못된 코드 · 2명 찬 커플 발급 | `INVALID_CODE` · `COUPLE_FULL` 거부 |
+| RLS — 다른 커플 계정 | A의 `couple_id`를 직접 지정해도 `expenses` 0건, `couples` 0건 |
+| RLS — 남의 `couple_id`로 INSERT | 정책 위반으로 거부 |
+| 초대 테이블 직접 SELECT | `permission denied` (정책도 GRANT도 없음) |
+| 지출이 걸린 카테고리 DELETE | FK RESTRICT로 거부 |
+| 일자 미정 지출 | 확정 합계에 안 섞이고 타임라인 예상 계열로만 잡힘 |
 
 `rich` 세트 추가 검증 — 분담 정산: 예랑 `₩2,104,000` / 예신 `₩1,640,000` → `예신 → 예랑 ₩232,000` ✅
 `rich`의 기타(제3자) 지출 `₩1,200,000`(예단·예물)은 위 세 수치에 **영향을 주지 않아야 한다** —

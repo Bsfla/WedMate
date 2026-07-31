@@ -30,6 +30,11 @@ export const MAJORS: readonly Major[] = [
   { key: "home", label: "신혼집", color: "var(--chart-4)" },
 ] as const;
 
+/** 대분류의 CSS 변수 색. 화면마다 같은 헬퍼를 다시 만들지 않게 여기 둔다. */
+export function majorColor(key: MajorKey): string {
+  return MAJORS.find((major) => major.key === key)?.color ?? "var(--chart-5)";
+}
+
 export const MAJOR_LABEL: Record<MajorKey, string> = {
   wedding: "결혼식",
   honeymoon: "신혼여행",
@@ -64,6 +69,15 @@ export const STAGE_LABEL: Record<Stage, string> = {
 export const SIDE_LABEL: Record<Side, string> = {
   groom: "예랑",
   bride: "예신",
+};
+
+/**
+ * 좁은 칸(세그먼트·칩)에서 쓰는 한 글자 축약.
+ * `SIDE_LABEL[side].slice(1)`로 만들지 않는다 — 라벨을 고치면 조용히 깨진다.
+ */
+export const SIDE_SHORT: Record<Side, string> = {
+  groom: "랑",
+  bride: "신",
 };
 
 export const PAYERS: readonly Payer[] = ["groom", "bride", "joint", "other"] as const;

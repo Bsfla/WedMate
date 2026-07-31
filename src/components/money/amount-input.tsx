@@ -15,6 +15,14 @@ type AmountInputProps = {
   label: string;
   autoFocus?: boolean;
   className?: string;
+  /**
+   * 아래 셋은 `Field`가 넘겨 주는 것을 **안쪽 `<input>`까지** 내리기 위한 통로다.
+   * 바깥 래퍼가 들고 있으면 포커스가 input에 있을 때 에러 문구가 낭독되지 않는다 —
+   * `aria-describedby`는 포커스된 요소의 것만 읽히기 때문이다.
+   */
+  id?: string;
+  describedBy?: string;
+  invalid?: boolean;
 };
 
 /**
@@ -30,6 +38,9 @@ export function AmountInput({
   label,
   autoFocus = false,
   className,
+  id,
+  describedBy,
+  invalid,
 }: AmountInputProps) {
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -43,7 +54,12 @@ export function AmountInput({
           // 소수점 없는 숫자 키패드를 띄운다.
           inputMode="numeric"
           type="text"
-          aria-label={label}
+          // 바깥에 보이는 <label for={id}>가 있으면 그쪽이 이름이다. aria-label을 같이 두면
+          // 눈에 보이는 라벨과 낭독되는 이름이 갈리므로, id를 받은 경우엔 얹지 않는다.
+          aria-label={id ? undefined : label}
+          aria-describedby={describedBy}
+          aria-invalid={invalid || undefined}
+          id={id}
           autoFocus={autoFocus}
           value={value === 0 ? "" : formatNumber(value)}
           placeholder="0"

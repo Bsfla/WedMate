@@ -1,14 +1,19 @@
 "use client";
 
-import { Calendar, Check } from "lucide-react";
-import { useState } from "react";
+import { Calendar } from "lucide-react";
+import { useState, useTransition } from "react";
 
 import { WarningBanner } from "@/components/data/warning-banner";
+import { Field } from "@/components/form/field";
+import { FormAlert } from "@/components/form/form-alert";
 import { BottomSheet } from "@/components/layout/bottom-sheet";
+import { Chip, ChipRow } from "@/components/layout/chip";
 import { SegmentedControl } from "@/components/layout/segmented-control";
 import { AmountInput } from "@/components/money/amount-input";
-import { EstimateBadge } from "@/components/money/estimate-badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   METHOD_LABEL,
   METHODS,
@@ -33,41 +38,27 @@ const RECENT_CATEGORIES = [
   { mid: "스드메", minor: "드레스" },
 ];
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="pl-0.5 text-caption text-muted-foreground">{children}</span>;
-}
+/** P3에서 날짜 선택기로 대체된다. 지금은 표시만 하는 값이라 상수로 둔다. */
+const TODAY = "2026-07-27";
 
-/** select·text 입력의 겉모습. 48px 높이 + 16px 폰트(iOS 자동 확대 방지). */
-function FieldBox({
-  children,
-  trailing,
-  muted = false,
-  disabled = false,
-}: {
-  children: React.ReactNode;
-  trailing?: React.ReactNode;
-  muted?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex min-h-12 items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 text-base tracking-tight",
-        muted && "text-muted-foreground",
-        disabled && "border-dashed opacity-45",
-      )}
-    >
-      {children}
-      {trailing}
-    </div>
-  );
-}
+/**
+ * 상한. 결혼 준비 지출 한 건이 10억을 넘는 경우는 없다고 보고,
+ * 0을 더 눌러 자릿수가 밀린 입력을 잡아 준다.
+ */
+const MAX_AMOUNT = 1_000_000_000;
+
+type SaveError = { field?: "amount"; message: string };
 
 /**
  * 빠른입력 바텀시트 — 상담 현장에서 한 손으로 끝나야 하는 화면.
  *
- * 퍼블리싱 단계라 저장은 로컬 상태만 갱신하고 시트를 닫는다.
- * 실제 쓰기는 P3에서 Server Action으로 붙인다.
+ * 라벨·도움말·에러 규격은 `components/form/field.tsx`가 갖는다(D-032).
+ * 이 파일에 폼 라벨 스타일을 다시 적지 않는다 — 로그인 폼과 규격이 갈리면
+ * 저장소에 폼 규격이 두 벌 생긴다.
+ *
+ * 퍼블리싱 단계라 저장은 시트를 닫기만 한다. 실제 쓰기는 P3에서 Server Action으로 붙는다 —
+ * `useTransition`을 미리 둔 이유가 그것이다. `startTransition` 본문만 갈아끼우면
+ * 제출 중 상태(버튼 비활성 + "저장 중…")가 그대로 작동한다.
  */
 export function QuickAddSheet({
   open,
@@ -77,144 +68,223 @@ export function QuickAddSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const [amount, setAmount] = useState(0);
+  // 결제자·수단·단계·분류는 시트를 닫아도 유지한다. 같은 업체에서 계약금·중도금을
+  // 연달아 넣는 게 이 화면의 실제 사용 패턴이라, 매번 초기화하면 손이 더 간다.
   const [payer, setPayer] = useState<Payer>("bride");
   const [method, setMethod] = useState<Method>("cash");
   const [stage, setStage] = useState<Stage>("deposit");
   const [category, setCategory] = useState(RECENT_CATEGORIES[0]);
   const [dateUnknown, setDateUnknown] = useState(false);
+  const [error, setError] = useState<SaveError | null>(null);
+  const [pending, startTransition] = useTransition();
+
+
+  // 시트를 다시 열면 금액·날짜미정·에러는 반드시 비어 있어야 한다.
+  // 닫을 때 지우면 슬라이드아웃 중에 값이 사라지는 게 보이므로, 열리는 렌더에서 맞춘다
+  // (React 공식 "렌더 중 상태 조정" 패턴 — 추가 렌더가 페인트 전에 끝난다).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setAmount(0);
+      setDateUnknown(false);
+      setError(null);
+    }
+  }
+
+  const focusAmount = () => {
+    document.getElementById("quick-amount")?.focus();
+  };
+
+  const handleSave = () => {
+    // 재시도를 시작하는 순간 이전 에러를 지운다. 낡은 문구가 남아 있으면
+    // 방금 누른 저장이 또 실패한 것처럼 보인다.
+    setError(null);
+
+    if (amount <= 0) {
+      setError({
+        field: "amount",
+        message: "금액이 0원이에요. 실제 결제한 금액을 입력해 주세요",
+      });
+      focusAmount();
+      return;
+    }
+
+    if (amount > MAX_AMOUNT) {
+      setError({
+        field: "amount",
+        message: "10억원을 넘는 금액이에요. 0을 더 누르지 않았는지 자릿수를 확인해 주세요",
+      });
+      focusAmount();
+      return;
+    }
+
+    startTransition(() => {
+      // P3: 여기에 Server Action 호출이 들어간다. 실패하면
+      // setError({ message: "…" })로 폼 전체 에러(FormAlert)를 띄운다.
+      onOpenChange(false);
+    });
+  };
+
+  const amountError = error?.field === "amount" ? error.message : undefined;
+  const formError = error && !error.field ? error.message : undefined;
 
   return (
     <BottomSheet
-      open={open}
-      onOpenChange={onOpenChange}
-      title="지출 추가"
       description="금액·분류·결제자·단계·날짜를 입력해 지출을 기록합니다."
+      onOpenChange={onOpenChange}
+      open={open}
+      title="지출 추가"
       titleAction={
-        dateUnknown ? (
-          <EstimateBadge label="예상 지출로 저장됩니다" />
-        ) : (
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="min-h-11 px-1 text-body-sm text-muted-foreground"
-          >
-            취소
-          </button>
-        )
+        // 취소는 어떤 상태에서도 사라지지 않는다. 이전 구현은 '날짜 미정'을 켜면
+        // 이 자리가 배지로 바뀌어 시트를 빠져나갈 버튼이 없어졌다.
+        <button
+          className="flex min-h-11 items-center px-2 text-body-sm text-muted-foreground"
+          onClick={() => onOpenChange(false)}
+          type="button"
+        >
+          취소
+        </button>
       }
       footer={
-        <Button size="lg" className="w-full" onClick={() => onOpenChange(false)}>
-          저장
+        <Button className="w-full" disabled={pending} onClick={handleSave} size="lg">
+          {/* 버튼이 무슨 일이 벌어질지를 말한다 — '날짜 미정'이면 이 건은 예상 지출이 된다. */}
+          {pending ? "저장 중…" : dateUnknown ? "예상 지출로 저장" : "저장"}
         </Button>
       }
     >
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>금액</FieldLabel>
-        <AmountInput value={amount} onChange={setAmount} label="지출 금액" autoFocus />
-      </div>
+      {formError && <FormAlert>{formError}</FormAlert>}
 
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>분류 · 최근</FieldLabel>
-        <div className="flex flex-wrap gap-1.5">
-          {RECENT_CATEGORIES.map((item) => {
-            const selected = item.minor === category.minor;
-            return (
-              <button
-                key={item.minor}
-                type="button"
-                onClick={() => setCategory(item)}
-                aria-pressed={selected}
+      <Field error={amountError} id="quick-amount" label="금액">
+        {(control) => (
+          <AmountInput
+            autoFocus
+            describedBy={control["aria-describedby"]}
+            id={control.id}
+            invalid={Boolean(amountError)}
+            label="지출 금액"
+            onChange={setAmount}
+            value={amount}
+          />
+        )}
+      </Field>
+
+      <Field help="최근 쓴 분류에서 골라 주세요" id="quick-category-mid" label="분류">
+        {(control) => (
+          <>
+            <ChipRow label="최근 쓴 분류">
+              {RECENT_CATEGORIES.map((item) => (
+                <Chip
+                  key={item.minor}
+                  onClick={() => setCategory(item)}
+                  selected={item.minor === category.minor}
+                  variant="solid"
+                >
+                  {item.mid} › {item.minor}
+                </Chip>
+              ))}
+            </ChipRow>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input {...control} readOnly value={category.mid} />
+              <Input aria-label="소분류" readOnly value={category.minor} />
+            </div>
+          </>
+        )}
+      </Field>
+
+      {/* 세그먼트·칩은 자기 `label`로 이미 접근성 이름을 갖는다. Field는 여기서
+          라벨의 **생김새와 간격**만 맡는다 — 화면마다 caption 라벨을 손으로 적지 않기 위함. */}
+      <Field id="quick-payer" label="결제자">
+        {() => (
+          <SegmentedControl
+            label="결제자"
+            onChange={setPayer}
+            options={PAYER_OPTIONS}
+            tone="rose"
+            value={payer}
+          />
+        )}
+      </Field>
+
+      <Field id="quick-method" label="수단">
+        {() => (
+          <SegmentedControl
+            label="결제수단"
+            onChange={setMethod}
+            options={METHOD_OPTIONS}
+            value={method}
+          />
+        )}
+      </Field>
+
+      <Field id="quick-stage" label="단계">
+        {() => (
+          <SegmentedControl
+            label="결제단계"
+            onChange={setStage}
+            options={STAGE_OPTIONS}
+            value={stage}
+          />
+        )}
+      </Field>
+
+      <div className="flex flex-col gap-2">
+        <Field id="quick-date" label="날짜">
+          {(control) => (
+            <div className="relative">
+              <Input
+                {...control}
+                className="num pr-11"
+                disabled={dateUnknown}
+                placeholder="날짜 미정"
+                readOnly
+                value={dateUnknown ? "" : TODAY}
+              />
+              <Calendar
+                aria-hidden
                 className={cn(
-                  "inline-flex h-8 items-center rounded-full border px-3 text-body-sm font-medium transition-colors",
-                  "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                  selected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border text-muted-foreground",
+                  "pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground",
+                  dateUnknown && "opacity-50",
                 )}
-              >
-                {item.mid} › {item.minor}
-              </button>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <FieldBox>{category.mid}</FieldBox>
-          <FieldBox>{category.minor}</FieldBox>
-        </div>
-      </div>
+                strokeWidth={1.9}
+              />
+            </div>
+          )}
+        </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>결제자</FieldLabel>
-        <SegmentedControl
-          tone="rose"
-          label="결제자"
-          options={PAYER_OPTIONS}
-          value={payer}
-          onChange={setPayer}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>수단</FieldLabel>
-        <SegmentedControl label="결제수단" options={METHOD_OPTIONS} value={method} onChange={setMethod} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>단계</FieldLabel>
-        <SegmentedControl label="결제단계" options={STAGE_OPTIONS} value={stage} onChange={setStage} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>날짜</FieldLabel>
-        <FieldBox
-          disabled={dateUnknown}
-          muted={dateUnknown}
-          trailing={<Calendar aria-hidden className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.9} />}
-        >
-          <span className="num">{dateUnknown ? "—" : "2026-07-27"}</span>
-        </FieldBox>
-
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={dateUnknown}
-          onClick={() => setDateUnknown((prev) => !prev)}
-          className="flex min-h-11 items-center gap-2.5 text-left text-[0.9rem] tracking-tight focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <span
-            className={cn(
-              "grid size-[22px] shrink-0 place-items-center rounded-md border-[1.6px] transition-colors",
-              dateUnknown ? "border-primary bg-primary" : "border-border",
-            )}
+        {/* 상자는 20px, 히트 영역은 44px(D-031). Label도 min-h-11이라 문구 쪽을 눌러도 켜진다. */}
+        <div className="flex items-center gap-3">
+          <Checkbox
+            checked={dateUnknown}
+            id="quick-date-unknown"
+            onCheckedChange={(checked) => setDateUnknown(checked === true)}
+          />
+          <Label
+            className={cn("text-body font-normal", !dateUnknown && "text-muted-foreground")}
+            htmlFor="quick-date-unknown"
           >
-            {dateUnknown && (
-              <Check aria-hidden className="size-3.5 text-primary-foreground" strokeWidth={3} />
-            )}
-          </span>
-          <span className={cn(!dateUnknown && "text-muted-foreground")}>
             날짜 미정 — 예상 지출로 기록
-          </span>
-        </button>
+          </Label>
+        </div>
 
         {/* 저장 전에 이 건이 예상 지출이 된다는 사실이 화면에 드러나야 한다. */}
         {dateUnknown && (
           <WarningBanner
-            tone="info"
-            title="월별 예상 금액에 반영됩니다"
             description="확정 지출 합계·소진율에는 포함되지 않습니다. 날짜가 정해지면 확정으로 전환하세요."
+            title="월별 예상 금액에 반영됩니다"
+            tone="info"
           />
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>업체</FieldLabel>
-        <FieldBox muted>선택 입력</FieldBox>
-      </div>
+      <Field id="quick-vendor" label="업체">
+        {(control) => <Input {...control} placeholder="선택 입력" readOnly />}
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>메모</FieldLabel>
-        <FieldBox muted>선택 입력</FieldBox>
-      </div>
+      <Field id="quick-memo" label="메모">
+        {(control) => <Input {...control} placeholder="선택 입력" readOnly />}
+      </Field>
     </BottomSheet>
   );
 }

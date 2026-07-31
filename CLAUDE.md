@@ -1,4 +1,4 @@
-# 웨딩 가계부 (buget)
+# WedMate (buget)
 
 예비부부 둘이 함께 쓰는, **결혼 준비 예산 전용 모바일 가계부**.
 원본 구글 시트(weddingreceipt 템플릿)의 「예산 수립 → 지출 기록 → 자동 결산」 계산 모델을 그대로
@@ -14,6 +14,9 @@
 |---|---|---|
 | [docs/product.md](docs/product.md) | 기획안 — 제품 정의 · 정보구조 · 화면 · 데이터 모델 | 기능/화면/스키마가 늘거나 바뀔 때 |
 | [docs/design-system.md](docs/design-system.md) | 토큰 · 타입 스케일 · 44px 밀도 · 컴포넌트 규칙 | 새 규칙이 생길 때 (+ `/design`에도 반영) |
+| [docs/erd.md](docs/erd.md) | 데이터 모델 물리 설계 — 타입·제약·인덱스·RLS·집계 View | 스키마가 바뀔 때 |
+| [docs/erd-diagram.html](docs/erd-diagram.html) | 확대·이동되는 ERD 뷰어 (브라우저로 열기) | erd.md의 다이어그램을 고칠 때 **같이** |
+| [docs/erd.dbml](docs/erd.dbml) | 같은 ERD의 DBML 사본 — dbdiagram.io에 붙여넣는 용도 | erd.md의 스키마를 고칠 때 **같이** |
 | [docs/roadmap.md](docs/roadmap.md) | **P0~P6 진행 상태 + DoD 수치** — 진행률의 단일 진실 소스 | 단계를 끝낼 때마다 |
 | [docs/decisions.md](docs/decisions.md) | 왜 그렇게 정했는가 (append-only) | 판단이 필요한 갈림길을 지날 때마다 |
 | [docs/design-review.html](docs/design-review.html) | 디자인 시안 보드 (브라우저로 열기) | 시안을 다시 그릴 때 |
@@ -23,11 +26,32 @@
 ## 새 기능을 추가할 때
 
 1. **docs/product.md**의 해당 절을 먼저 갱신한다 (무엇을 왜 만드는지).
-2. 화면이 늘면 **docs/design-system.md**의 토큰·컴포넌트로 조립한다. 새 색·새 크기를 즉흥적으로 만들지 않는다.
-   기존 토큰으로 안 되면 토큰을 추가하고 문서와 `/design`에 반영한다.
+2. **화면이 하나라도 늘면 `design` 서브에이전트를 먼저 부른다** (↓ 아래 절).
 3. 갈림길에서 판단했다면 **docs/decisions.md**에 한 항목 덧붙인다 (코드를 봐도 모르는 "왜"만).
 4. 끝나면 **docs/roadmap.md**의 상태를 갱신한다.
 5. `npm run lint && npm run build`가 무경고로 통과해야 한다.
+
+---
+
+## 새 페이지는 디자인이 먼저다 🔴
+
+**새 화면·새 페이지를 만들 때는 코드를 짜기 전에 `design` 서브에이전트를 먼저 부른다.**
+(`.claude/agents/design.md` — Task 도구의 `design` 타입)
+
+```
+설계(design 에이전트)  →  검토  →  구현  →  /design 등록  →  lint/build
+```
+
+순서를 뒤집지 않는다. 화면을 먼저 짜고 나중에 디자인을 입히면 화면마다 크기·색·간격이
+제각각으로 굳어져 되돌리는 비용이 커진다 — P0→PD에서 이미 한 번 겪은 일이다.
+
+**design 에이전트에게 넘길 것**: 화면의 목적, 보여줄 데이터, 진입 경로, 제약.
+**받을 것**: 정보 위계 · 375px 와이어 · 상태 목록(빈/로딩/에러/제출중) · 토큰 매핑 · 재사용할 기존 컴포넌트.
+
+이 에이전트는 **파일을 직접 고칠 수 있다.** 같은 파일을 동시에 만지지 않도록 범위를 나눠 던진다.
+
+**부르지 않아도 되는 경우** — 문구 한 줄 수정, 이미 설계된 화면의 버그 픽스, 서버 로직·쿼리 작업.
+새 컴포넌트가 생기거나 레이아웃이 바뀌면 부른다.
 
 ---
 
@@ -78,8 +102,14 @@ P2~P5는 그 함수 본문만 Supabase 쿼리로 갈아끼우고 화면 코드�
 
 **shadcn CLI v4는 비대화식으로 돌리려면** `-p nova -b radix`가 필요하다.
 
-**Supabase는 아직 미연결.** `.env.local`이 비어 있어 `lib/supabase/env.ts`의
-`isSupabaseConfigured`가 false → `proxy.ts`가 세션 갱신을 건너뛴다. P1에서 연결한다.
+**`CREATE VIEW`에 `WITH (security_invoker = on)`을 빠뜨리지 않는다.** 기본값이 아니라서,
+빠뜨리면 View가 소유자 권한으로 돌아 호출자의 RLS를 통과한다 — 남의 커플 결산이 그대로 보인다. (→ D-025)
+
+**부분 UNIQUE 인덱스 술어에 `now()`를 쓸 수 없다.** IMMUTABLE 식만 허용된다.
+"살아 있는 코드 1개"는 `expires_at > now()`가 아니라 `revoked_at IS NULL`로 건다. (→ D-029)
+
+**`src/lib/supabase/types.ts`는 손으로 고치지 않는다.** `npm run db:types`의 출력물이다.
+스키마를 바꿨으면 반드시 다시 돌린다 — 안 그러면 없는 컬럼을 타입 오류 없이 참조하게 된다.
 
 ---
 
@@ -89,7 +119,13 @@ P2~P5는 그 함수 본문만 Supabase 쿼리로 갈아끼우고 화면 코드�
 npm run dev          # 375×812 뷰포트로 볼 것
 npm run lint         # 무경고여야 함
 npm run build        # 무경고여야 함
+
+npm run db:reset     # 로컬 Postgres 초기화 + 마이그레이션 재적용 (Docker 필요)
+npm run db:types     # 스키마 → src/lib/supabase/types.ts 재생성
 ```
+
+**스키마는 `supabase/migrations/`가 진실이다.** 대시보드에서 직접 고치지 않는다.
+설계 근거는 [docs/erd.md](docs/erd.md), 파일별 역할은 그 문서 5절에 있다.
 
 **fixture 전환** — 모든 탭이 `?fixture=` 쿼리를 받는다.
 

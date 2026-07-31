@@ -1,0 +1,320 @@
+// ─────────────────────────────────────────────────────────────
+// 웨딩 가계부 — 데이터 모델 (dbdiagram.io 용 DBML)
+//
+// 쓰는 법: https://dbdiagram.io/d → 왼쪽 편집기에 이 파일 전체를 붙여넣기
+//
+// ⚠️ docs/erd.md 와 같은 내용이다. 한쪽을 고치면 다른 쪽도 고쳐야 한다.
+//    erd.md 가 원본이고 이 파일은 그리기용 사본이다.
+//
+// DBML이 표현하지 못하는 것 — CHECK 제약, GENERATED 컬럼, RLS 정책, 부분 인덱스.
+//   전부 각 컬럼의 note에 글로 적어 두었다. 실제 제약은 erd.md 2절을 보라.
+// enum을 DBML `Enum`으로 선언하지 않은 것은 의도적이다 —
+//   물리 설계가 `text + CHECK` 이기 때문 (erd.md 0절 ③).
+// ─────────────────────────────────────────────────────────────
+
+Project wedding_budget {
+  database_type: 'PostgreSQL'
+  Note: '''
+    예비부부 2인 공유 결혼 준비 가계부.
+    모든 테이블에 couple_id가 있다 — 조인을 줄이려는 게 아니라
+    RLS 정책을 `couple_id = current_couple_id()` 한 줄로 통일하기 위해서다.
+  '''
+}
+
+// ══════════════════════════════════════════════
+// 스페이스 · 인증
+// ══════════════════════════════════════════════
+
+Table auth.users {
+  id uuid [pk, note: '우리가 FK로 잡는 유일한 컬럼. auth.uid()가 이 값을 돌려준다']
+  email text
+  email_confirmed_at timestamptz
+  last_sign_in_at timestamptz
+  raw_user_meta_data jsonb [note: 'OAuth 프로필(카카오)이 들어오는 자리 — 2차 백로그']
+  created_at timestamptz
+
+  Note: '''
+    ⚠️ 우리 테이블이 아니다. Supabase Auth 소유이고 마이그레이션에서 만들지도 고치지도 않는다.
+
+    함정: auth 스키마는 PostgREST에 노출되지 않는다.
+    클라이언트가 얻는 건 auth.getUser()로 조회하는 자기 자신뿐이라,
+    조인해서 "상대방 이름"을 가져오는 설계는 불가능하다.
+    → couple_members.display_name 에 복사해 둔다 (D-024)
+  '''
+}
+
+Table couples {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name text [not null, note: '"우리 결혼 준비"']
+  wedding_date date [not null, note: '홈 D-day의 기준']
+  total_budget bigint [not null, note: 'CHECK >= 0 · 예산 화면 전체의 분모']
+  guest_min_guarantee int [not null, default: 200, note: '보증인원 갭 계산']
+  avg_gift_amount bigint [not null, default: 80000, note: '예상 축의금']
+  meal_cost_per_head bigint [not null, default: 70000, note: '보증인원 미달 시 추가 식대']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: '커플 스페이스 하나 = 결혼 준비 하나'
+}
+
+Table couple_members {
+  couple_id uuid [not null]
+  user_id uuid [not null]
+  side text [not null, note: "CHECK IN ('groom','bride')"]
+  display_name text [not null, note: 'auth.users를 조인할 수 없어 참여 시점에 복사한다 (D-024)']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (couple_id, user_id) [pk]
+    (couple_id, side) [unique, name: 'uq_member_side']
+    (user_id) [unique, name: 'couple_members_user_unique']
+  }
+
+  Note: '''
+    UNIQUE(couple_id, side) 가 3인 진입을 DB 레벨에서 막는다.
+    UNIQUE(user_id) 는 "사용자 1명 = 커플 1개"를 강제한다 —
+    current_couple_id() 의 LIMIT 1 이 이 제약 위에 서 있다.
+
+    RLS는 예외가 아니다. 다른 테이블과 똑같이 couple_id = current_couple_id() 를 쓴다.
+    재귀는 current_couple_id() 가 SECURITY DEFINER(=RLS 우회)라 일어나지 않는다.
+    user_id = auth.uid() 로 좁히면 내 행만 보여 멤버 목록에 상대가 뜨지 않는다 (D-030).
+
+    INSERT 정책은 주지 않는다. 가입은 create_couple() / redeem_invite() RPC로만.
+  '''
+}
+
+Table couple_invites {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  code text [not null, unique, note: 'CHECK length = 6 · 혼동 문자 0 O 1 I 제외']
+  side text [not null, note: '발급 시점의 남은 역할로 고정']
+  expires_at timestamptz [not null, note: '발급 + 7일']
+  used_by uuid [null, note: '차면 재사용 불가']
+  used_at timestamptz [null]
+  revoked_at timestamptz [null, note: '재발급 시 이전 코드를 여기 찍어 무효화 (D-029)']
+  created_by uuid [not null]
+
+  Note: '''
+    1회용 초대 코드.
+
+    부분 UNIQUE 인덱스 (couple_id) WHERE used_by IS NULL AND revoked_at IS NULL
+    → 미사용·미폐기 코드는 커플당 1개. 재발급하면 이전 코드가 즉시 무효가 된다.
+    술어를 expires_at > now() 로 쓸 수 없어 revoked_at 을 따로 둔 것이다 —
+    부분 인덱스 술어에는 IMMUTABLE 식만 올 수 있다 (D-029).
+
+    RLS 예외: 직접 SELECT를 전면 차단한다 (정책도 GRANT도 주지 않는다).
+    참여하려는 쪽은 아직 멤버가 아니라 조회 권한이 없기 때문이다.
+    create_invite() / active_invite() / redeem_invite(code, name)
+    SECURITY DEFINER RPC로만 접근한다 (D-017) —
+    그래야 코드 목록을 통째로 긁어갈 수 없다.
+  '''
+}
+
+// ══════════════════════════════════════════════
+// 마스터 데이터 — 가입 시 복사 시드 (D-015)
+// ══════════════════════════════════════════════
+
+Table categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  level text [not null, note: "CHECK IN ('major','mid','minor')"]
+  parent_id uuid [null, note: 'major면 NULL']
+  name text [not null]
+  major_key text [null, note: "CHECK IN ('wedding','honeymoon','household','home') · 대분류만 NOT NULL (D-027)"]
+  sort_order int [not null, default: 0, note: '↑↓ 버튼으로 조정 (D-020)']
+  is_archived boolean [not null, default: false, note: '삭제 대신 보관 (D-016)']
+
+  indexes {
+    (couple_id, parent_id, sort_order) [name: 'idx_categories_tree']
+    (couple_id, major_key) [unique, name: 'categories_couple_id_major_key_key']
+  }
+
+  Note: '''
+    3단 트리. 시드는 대 4 / 중 11 / 소 25 —
+    lib/mock/fixtures.ts 의 RICH_BUDGETS 가 그대로 원본이다.
+
+    CHECK (level = 'major') = (parent_id IS NULL) — 대분류만 뿌리라는 규칙을 DB로 강제.
+    CHECK (level = 'major') = (major_key IS NOT NULL) + UNIQUE (couple_id, major_key)
+    → 대분류 '추가' 금지가 DB 제약이 된다. 다섯 번째는 쓸 수 있는 키가 없다 (D-027).
+
+    major_key 는 이름과 무관한 고정 키다. 차트 색·결산 집계·최종 손익이 이 값을 보므로
+    사용자가 "결혼식"을 "본식"으로 고쳐도 끊기지 않는다. lib/domain.ts 의 MajorKey 와 같은 값.
+
+    대분류 '삭제' 금지만 애플리케이션 규칙으로 남는다 —
+    배분·지출이 걸려 있으면 RESTRICT가 막지만 빈 대분류는 DB가 막지 않는다.
+  '''
+}
+
+Table payment_methods {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  payer text [not null, note: "CHECK IN ('groom','bride','joint','other') · other = 제3자 (D-023)"]
+  method text [not null, note: "CHECK IN ('cash','card','voucher','account')"]
+  label text [note: '"신한 공동통장"']
+  is_active boolean [not null, default: true, note: '삭제가 아니라 비활성']
+
+  indexes {
+    (couple_id, payer, method) [unique, name: 'uq_payment_combo']
+  }
+
+  Note: '결제자 4 × 수단 4 = 16 조합을 시드한다'
+}
+
+// ══════════════════════════════════════════════
+// 예산
+// ══════════════════════════════════════════════
+
+Table budget_allocations {
+  couple_id uuid [not null]
+  category_id uuid [not null, note: 'major 카테고리만']
+  amount bigint [not null, default: 0, note: 'CHECK >= 0']
+
+  indexes {
+    (couple_id, category_id) [pk]
+  }
+
+  Note: '대분류 배분. 대분류당 1행이라 별도 id를 두지 않는다'
+}
+
+Table budgets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  category_id uuid [not null, note: 'minor 카테고리만']
+  amount bigint [not null, default: 0, note: 'CHECK >= 0']
+  vendor_candidate text [note: '후보 업체']
+  reference_url text [note: '참고 링크']
+  note text
+
+  indexes {
+    (couple_id, category_id) [unique, name: 'uq_budget_category']
+  }
+
+  Note: '소분류 예산. 소분류당 1행'
+}
+
+// ══════════════════════════════════════════════
+// 지출
+// ══════════════════════════════════════════════
+
+Table expenses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  category_id uuid [not null, note: 'minor 카테고리']
+  amount bigint [not null, note: 'CHECK > 0']
+  spent_year int [not null]
+  spent_month int [not null, note: 'CHECK 1..12']
+  spent_day int [null, note: '⭐ NULL = 예상 지출 (시트 규칙 그대로)']
+  is_estimated boolean [note: 'GENERATED ALWAYS AS (spent_day IS NULL) STORED']
+  payment_method_id uuid [not null, note: 'payer는 여기를 조인해 얻는다']
+  stage text [not null, note: "CHECK IN ('deposit','interim','balance','full') (D-003)"]
+  vendor text
+  memo text
+  created_by uuid [null, default: `auth.uid()`, note: '누가 입력했는지 · 탈퇴해도 지출은 남으므로 ON DELETE SET NULL']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (couple_id, spent_year, spent_month) [name: 'idx_expenses_period']
+    (couple_id, category_id) [name: 'idx_expenses_category']
+  }
+
+  Note: '''
+    날짜를 date 한 컬럼이 아니라 년/월/일 3개로 쪼갠 이유:
+    일자 미정(예상 지출)을 표현해야 하는데 date로는 "2026년 8월 어느 날"을 담을 수 없다.
+    시트의 입력 방식과도 같다.
+
+    is_confirmed 는 뺐다 — is_estimated 와 같은 사실을 두 번 저장하게 되고,
+    둘이 어긋나면 어느 쪽이 진실인지 알 수 없다 (D-026).
+  '''
+}
+
+// ══════════════════════════════════════════════
+// 하객 · 저축
+// ══════════════════════════════════════════════
+
+Table guests {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  side text [not null, note: "CHECK IN ('groom','bride')"]
+  name text [not null, note: '"교회 청년부"처럼 팀 단위도 한 행']
+  companion_count int [not null, default: 0, note: '본인 제외 동반 인원']
+  sig_event_attended boolean [not null, default: false, note: '신호① 과거 경조사 참석']
+  sig_invite_meeting boolean [not null, default: false, note: '신호② 청첩장 모임']
+  sig_close boolean [not null, default: false, note: '신호③ 친분']
+  expected_attend boolean [note: 'GENERATED — 신호 3개 중 하나라도 true면 참석 예상']
+  actual_attend_count int [null, note: '예식 후 입력']
+  gift_amount bigint [null]
+  gift_method text [null, note: "CHECK IN ('transfer','cash')"]
+  repay_done boolean [not null, default: false, note: '답례 여부']
+  memo text
+
+  Note: '예상 참석 인원 = Σ(1 + companion_count) where expected_attend — 본인 1명이 항상 더해진다'
+}
+
+Table savings_goals {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  label text [not null]
+  target_amount bigint [not null, note: 'CHECK > 0']
+  monthly_amount bigint
+  months int
+  account_name text
+  current_amount bigint [not null, default: 0]
+}
+
+// ══════════════════════════════════════════════
+// 관계
+// ══════════════════════════════════════════════
+
+Ref: couple_members.couple_id > couples.id [delete: cascade]
+Ref: couple_members.user_id > auth.users.id [delete: cascade]
+
+Ref: couple_invites.couple_id > couples.id [delete: cascade]
+Ref: couple_invites.used_by > auth.users.id
+Ref: couple_invites.created_by > auth.users.id
+
+Ref: categories.couple_id > couples.id [delete: cascade]
+Ref: categories.parent_id > categories.id [delete: cascade]
+Ref: payment_methods.couple_id > couples.id [delete: cascade]
+
+Ref: budget_allocations.couple_id > couples.id [delete: cascade]
+Ref: budget_allocations.category_id - categories.id [delete: restrict]
+
+Ref: budgets.couple_id > couples.id [delete: cascade]
+Ref: budgets.category_id - categories.id [delete: restrict]
+
+Ref: expenses.couple_id > couples.id [delete: cascade]
+Ref: expenses.category_id > categories.id [delete: restrict]
+Ref: expenses.payment_method_id > payment_methods.id [delete: restrict]
+Ref: expenses.created_by > auth.users.id
+
+Ref: guests.couple_id > couples.id [delete: cascade]
+Ref: savings_goals.couple_id > couples.id [delete: cascade]
+
+// 커플이 지워지면 전부 CASCADE.
+// 카테고리·결제수단은 RESTRICT — 지출이 참조 중이면 DB가 삭제를 막고,
+// 화면에서는 is_archived / is_active 로만 감춘다 (D-016).
+
+// ══════════════════════════════════════════════
+// 그룹 (dbdiagram 캔버스 정리용)
+// ══════════════════════════════════════════════
+
+TableGroup "스페이스 · 인증" {
+  couples
+  couple_members
+  couple_invites
+}
+
+TableGroup "마스터 데이터" {
+  categories
+  payment_methods
+}
+
+TableGroup "예산 · 지출" {
+  budget_allocations
+  budgets
+  expenses
+}
+
+TableGroup "하객 · 저축" {
+  guests
+  savings_goals
+}

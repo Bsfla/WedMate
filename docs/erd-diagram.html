@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WedMate — ERD 뷰어</title>
+
+<style>
+  :root {
+    --ground: #fbfafa;
+    --surface: #ffffff;
+    --surface-sunk: #f4f2f3;
+    --ink: #1a1719;
+    --muted: #6e6771;
+    --border: #e6e1e3;
+    --border-strong: #d6cfd2;
+    --accent: #e11d48;
+    --accent-soft: #fff1f3;
+    --shadow: 0 1px 2px rgba(26, 23, 25, 0.06), 0 8px 24px rgba(26, 23, 25, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #141215;
+      --surface: #1c191d;
+      --surface-sunk: #100e11;
+      --ink: #f2eff0;
+      --muted: #a39ca5;
+      --border: #302b32;
+      --border-strong: #423b44;
+      --accent: #fb7185;
+      --accent-soft: #2a1319;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #141215;
+    --surface: #1c191d;
+    --surface-sunk: #100e11;
+    --ink: #f2eff0;
+    --muted: #a39ca5;
+    --border: #302b32;
+    --border-strong: #423b44;
+    --accent: #fb7185;
+    --accent-soft: #2a1319;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  :root[data-theme="light"] {
+    --ground: #fbfafa;
+    --surface: #ffffff;
+    --surface-sunk: #f4f2f3;
+    --ink: #1a1719;
+    --muted: #6e6771;
+    --border: #e6e1e3;
+    --border-strong: #d6cfd2;
+    --accent: #e11d48;
+    --accent-soft: #fff1f3;
+    --shadow: 0 1px 2px rgba(26, 23, 25, 0.06), 0 8px 24px rgba(26, 23, 25, 0.08);
+  }
+
+  .erd-app {
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic",
+      "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 100vh;
+    max-height: 100dvh;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    overflow: hidden;
+  }
+
+  /* ── 헤더 ───────────────────────────────────────────── */
+
+  .erd-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .erd-bar h1 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .erd-bar .erd-sub {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+  }
+
+  .erd-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .erd-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-sunk);
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .erd-legend b {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  /* ── 다이어그램 무대 ─────────────────────────────────── */
+
+  .erd-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: var(--surface-sunk);
+    background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
+    background-size: 22px 22px;
+    cursor: grab;
+    touch-action: none;
+    overscroll-behavior: contain;
+  }
+
+  .erd-stage.is-dragging {
+    cursor: grabbing;
+  }
+
+  .erd-stage:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -3px;
+  }
+
+  .erd-canvas {
+    transform-origin: 0 0;
+    padding: 28px;
+    width: max-content;
+  }
+
+  .erd-canvas pre.mermaid {
+    margin: 0;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+
+  /* 렌더 전 mermaid 소스가 날것으로 번쩍이지 않게 감춘다.
+     mermaid가 그리고 나면 data-processed가 붙는다. */
+  .erd-canvas pre.mermaid:not([data-processed]) {
+    visibility: hidden;
+  }
+
+  /* CDN이 막혔을 때(오프라인 등) 소스 대신 뜨는 안내 */
+  .erd-offline {
+    display: none;
+    max-width: 46ch;
+    padding: 20px 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .erd-offline strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--ink);
+    font-size: 15px;
+  }
+
+  .erd-offline code {
+    color: var(--accent);
+  }
+
+  .is-offline .erd-offline {
+    display: block;
+  }
+
+  .is-offline .erd-canvas pre.mermaid {
+    display: none;
+  }
+
+  /* 무대가 스케일을 담당하므로 SVG 자체는 축소되면 안 된다. */
+  .erd-canvas svg {
+    display: block;
+    max-width: none !important;
+    height: auto !important;
+  }
+
+  .erd-hint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.875rem;
+    pointer-events: none;
+  }
+
+  .erd-hint.is-hidden {
+    display: none;
+  }
+
+  /* ── 컨트롤 ─────────────────────────────────────────── */
+
+  .erd-controls {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .erd-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 0.8125rem;
+    font-weight: 550;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+  }
+
+  .erd-controls button:hover {
+    background: var(--surface-sunk);
+  }
+
+  .erd-controls button:active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .erd-controls button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -1px;
+  }
+
+  .erd-controls .erd-icon {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  .erd-controls .erd-level {
+    min-width: 58px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  .erd-controls .erd-sep {
+    width: 1px;
+    height: 20px;
+    margin: 0 2px;
+    background: var(--border);
+  }
+
+  @media (max-width: 560px) {
+    .erd-legend {
+      margin-left: 0;
+    }
+    .erd-controls {
+      right: 12px;
+      bottom: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="erd-app">
+  <header class="erd-bar">
+    <h1>WedMate — 데이터 모델 ERD</h1>
+    <p class="erd-sub">P1 물리 설계 제안 · 테이블 10종</p>
+    <div class="erd-legend">
+      <span><b>||—o{</b> 1 : N</span>
+      <span><b>||—||</b> 1 : 1</span>
+      <span><b>PK</b> 기본키</span>
+      <span><b>FK</b> 외래키</span>
+    </div>
+  </header>
+
+  <div class="erd-stage" id="stage" tabindex="0" role="application"
+       aria-label="ERD 다이어그램. 드래그로 이동, 휠 또는 확대 버튼으로 확대합니다.">
+    <div class="erd-canvas" id="canvas">
+      <div class="erd-offline">
+        <strong>다이어그램을 그리지 못했습니다</strong>
+        mermaid 런타임을 CDN에서 받아오는데, 네트워크가 막혀 있는 것 같습니다.
+        인터넷에 연결한 뒤 새로고침하거나, 같은 내용을 텍스트로 담은
+        <code>docs/erd.md</code>를 보세요.
+      </div>
+<pre class="mermaid">
+erDiagram
+  auth_users ||--o{ couple_members : "가입"
+  couples ||--o{ couple_members : ""
+  couples ||--o{ couple_invites : ""
+
+  couples ||--o{ categories : "복사 시드"
+  categories ||--o{ categories : "parent_id"
+  couples ||--o{ payment_methods : "복사 시드"
+
+  couples ||--o{ budget_allocations : ""
+  categories ||--|| budget_allocations : "major만"
+  couples ||--o{ budgets : ""
+  categories ||--|| budgets : "minor만"
+
+  couples ||--o{ expenses : ""
+  categories ||--o{ expenses : "minor만"
+  payment_methods ||--o{ expenses : ""
+
+  couples ||--o{ guests : ""
+  couples ||--o{ savings_goals : ""
+
+  auth_users {
+    uuid id PK "auth.users — Supabase Auth 소유"
+    text email "우리가 만들지도 고치지도 않는다"
+    timestamptz email_confirmed_at
+    timestamptz last_sign_in_at
+    jsonb raw_user_meta_data
+    timestamptz created_at
+  }
+
+  couples {
+    uuid id PK
+    text name
+    date wedding_date "필수 · D-day 기준"
+    bigint total_budget "필수"
+    int guest_min_guarantee "기본 200"
+    bigint avg_gift_amount "기본 80000"
+    bigint meal_cost_per_head "기본 70000"
+  }
+
+  couple_members {
+    uuid couple_id PK "FK couples"
+    uuid user_id PK "FK auth.users"
+    text side "groom 또는 bride · UNIQUE로 3인 차단"
+    text display_name "NOT NULL · auth.users 조인 불가라 복사"
+  }
+
+  couple_invites {
+    uuid id PK
+    uuid couple_id FK
+    text code UK "6자리 · 0 O 1 I 제외"
+    text side "초대받는 쪽 역할"
+    timestamptz expires_at "발급 + 7일"
+    uuid used_by FK "차면 재사용 불가"
+    timestamptz used_at
+    timestamptz revoked_at "재발급 시 이전 코드 폐기"
+    uuid created_by FK
+  }
+
+  categories {
+    uuid id PK
+    uuid couple_id FK
+    text level "major, mid, minor"
+    uuid parent_id FK "major면 NULL"
+    text name
+    text major_key "대분류 고정 키 · 이름 변경과 무관"
+    int sort_order "↑↓ 버튼으로 조정"
+    bool is_archived "삭제 대신 보관"
+  }
+
+  payment_methods {
+    uuid id PK
+    uuid couple_id FK
+    text payer "groom, bride, joint, other"
+    text method "cash, card, voucher, account"
+    text label "신한 공동통장"
+    bool is_active "삭제 아닌 비활성"
+  }
+
+  budget_allocations {
+    uuid couple_id PK "FK couples"
+    uuid category_id PK "FK categories · major"
+    bigint amount "대분류 배분액"
+  }
+
+  budgets {
+    uuid id PK
+    uuid couple_id FK
+    uuid category_id FK "minor · UNIQUE"
+    bigint amount
+    text vendor_candidate "후보 업체"
+    text reference_url "참고 링크"
+    text note
+  }
+
+  expenses {
+    uuid id PK
+    uuid couple_id FK
+    uuid category_id FK "minor"
+    bigint amount "0 초과"
+    int spent_year
+    int spent_month "1에서 12"
+    int spent_day "NULL = 예상 지출"
+    bool is_estimated "GENERATED spent_day IS NULL"
+    uuid payment_method_id FK "payer는 여기서 조인"
+    text stage "deposit, interim, balance, full"
+    text vendor
+    text memo
+    uuid created_by FK
+  }
+
+  guests {
+    uuid id PK
+    uuid couple_id FK
+    text side "groom 또는 bride"
+    text name "팀 단위도 한 행"
+    int companion_count "본인 제외 동반"
+    bool sig_event_attended "과거 경조사 참석"
+    bool sig_invite_meeting "청첩장 모임"
+    bool sig_close "친분"
+    bool expected_attend "GENERATED 신호 1개 이상"
+    int actual_attend_count "예식 후 입력"
+    bigint gift_amount
+    text gift_method "transfer 또는 cash"
+    bool repay_done "답례 여부"
+  }
+
+  savings_goals {
+    uuid id PK
+    uuid couple_id FK
+    text label
+    bigint target_amount
+    bigint monthly_amount
+    int months
+    text account_name
+    bigint current_amount
+  }
+</pre>
+    </div>
+
+    <p class="erd-hint" id="hint">다이어그램을 그리는 중…</p>
+
+    <div class="erd-controls">
+      <button type="button" id="out" aria-label="축소"><span class="erd-icon" aria-hidden="true">−</span></button>
+      <span class="erd-level" id="level" role="status" aria-live="polite">100%</span>
+      <button type="button" id="in" aria-label="확대"><span class="erd-icon" aria-hidden="true">+</span></button>
+      <span class="erd-sep" aria-hidden="true"></span>
+      <button type="button" id="fit">화면 맞춤</button>
+      <button type="button" id="reset">100%</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // 이 파일은 file://로 직접 열린다. mermaid를 직접 실어와야 다이어그램이 그려진다.
+  // (없으면 mermaid 소스가 글자 그대로 노출된다.)
+  try {
+    const { default: mermaid } = await import(
+      "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
+    );
+
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "loose",
+      theme: "base",
+      // 디자인 시스템 토큰과 같은 계열로 맞춘다 (design-system.md).
+      themeVariables: {
+        fontFamily:
+          "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+        fontSize: "14px",
+        primaryColor: "#ffffff",
+        primaryTextColor: "#1a1719",
+        primaryBorderColor: "#d6cfd2",
+        lineColor: "#6e6771",
+        tertiaryColor: "#f4f2f3",
+      },
+    });
+  } catch (err) {
+    console.error("[erd] mermaid 로드 실패", err);
+    document.body.classList.add("is-offline");
+    var h = document.getElementById("hint");
+    if (h) h.classList.add("is-hidden");
+  }
+</script>
+
+<script>
+  (function () {
+    var stage = document.getElementById("stage");
+    var canvas = document.getElementById("canvas");
+    var level = document.getElementById("level");
+    var hint = document.getElementById("hint");
+
+    var MIN = 0.2;
+    var MAX = 5;
+    var zoom = 1;
+
+    function apply() {
+      canvas.style.transform = "scale(" + zoom + ")";
+      level.textContent = Math.round(zoom * 100) + "%";
+    }
+
+    function clamp(z) {
+      return Math.min(MAX, Math.max(MIN, z));
+    }
+
+    /** 커서(또는 무대 중앙) 아래 지점을 고정한 채 배율만 바꾼다. */
+    function zoomTo(next, clientX, clientY) {
+      next = clamp(next);
+      if (next === zoom) return;
+
+      var rect = stage.getBoundingClientRect();
+      var ax = clientX == null ? rect.width / 2 : clientX - rect.left;
+      var ay = clientY == null ? rect.height / 2 : clientY - rect.top;
+
+      var px = (stage.scrollLeft + ax) / zoom;
+      var py = (stage.scrollTop + ay) / zoom;
+
+      zoom = next;
+      apply();
+
+      stage.scrollLeft = px * zoom - ax;
+      stage.scrollTop = py * zoom - ay;
+    }
+
+    /** 배율 1일 때의 실제 그림 크기. 맞춤 계산에 쓴다. */
+    function naturalSize() {
+      var svg = canvas.querySelector("svg");
+      if (!svg) return null;
+
+      var prev = canvas.style.transform;
+      canvas.style.transform = "scale(1)";
+      var box = canvas.getBoundingClientRect();
+      canvas.style.transform = prev;
+
+      if (!box.width || !box.height) return null;
+      return { w: box.width, h: box.height };
+    }
+
+    function fit() {
+      var size = naturalSize();
+      if (!size) return;
+
+      var rect = stage.getBoundingClientRect();
+      zoom = clamp(Math.min(rect.width / size.w, rect.height / size.h));
+      apply();
+
+      // 남는 여백만큼 가운데로 밀어 준다.
+      stage.scrollLeft = Math.max(0, (size.w * zoom - rect.width) / 2);
+      stage.scrollTop = Math.max(0, (size.h * zoom - rect.height) / 2);
+    }
+
+    document.getElementById("in").addEventListener("click", function () {
+      zoomTo(zoom * 1.25);
+    });
+    document.getElementById("out").addEventListener("click", function () {
+      zoomTo(zoom / 1.25);
+    });
+    document.getElementById("fit").addEventListener("click", fit);
+    document.getElementById("reset").addEventListener("click", function () {
+      zoomTo(1);
+    });
+
+    stage.addEventListener(
+      "wheel",
+      function (e) {
+        // 트랙패드 두 손가락 스크롤은 그대로 두고, 확대 제스처와 휠만 가로챈다.
+        if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        zoomTo(zoom * Math.pow(0.999, e.deltaY), e.clientX, e.clientY);
+      },
+      { passive: false }
+    );
+
+    var dragging = false;
+    var lastX = 0;
+    var lastY = 0;
+
+    stage.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      stage.classList.add("is-dragging");
+      stage.setPointerCapture(e.pointerId);
+    });
+
+    stage.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      stage.scrollLeft -= e.clientX - lastX;
+      stage.scrollTop -= e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      stage.classList.remove("is-dragging");
+      if (e && e.pointerId != null && stage.hasPointerCapture(e.pointerId)) {
+        stage.releasePointerCapture(e.pointerId);
+      }
+    }
+
+    stage.addEventListener("pointerup", endDrag);
+    stage.addEventListener("pointercancel", endDrag);
+
+    stage.addEventListener("keydown", function (e) {
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        zoomTo(zoom * 1.25);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        zoomTo(zoom / 1.25);
+      } else if (e.key === "0") {
+        e.preventDefault();
+        zoomTo(1);
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        fit();
+      }
+    });
+
+    // mermaid는 런타임이 그린다. SVG가 꽂히는 순간을 기다렸다가 한 번만 맞춘다.
+    var settled = false;
+    function onRendered() {
+      if (settled) return;
+      settled = true;
+      hint.classList.add("is-hidden");
+      requestAnimationFrame(fit);
+    }
+
+    if (canvas.querySelector("svg")) {
+      onRendered();
+    } else {
+      var observer = new MutationObserver(function () {
+        if (canvas.querySelector("svg")) {
+          observer.disconnect();
+          onRendered();
+        }
+      });
+      observer.observe(canvas, { childList: true, subtree: true });
+
+      // 렌더가 끝내 안 되더라도 안내 문구가 남아 있지 않게 한다.
+      setTimeout(function () {
+        observer.disconnect();
+        if (!settled) {
+          settled = true;
+          hint.textContent = "다이어그램을 그리지 못했습니다. docs/erd.md 를 확인해 주세요.";
+        }
+      }, 8000);
+    }
+
+    apply();
+  })();
+</script>
+
+</body>
+</html>

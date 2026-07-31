@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="WedMate">
+  <!--
+    WedMate 마크 — 진행률 링. 결혼반지이면서 예산 소진율 게이지.
+
+    기하를 brand-mark.tsx / lib/brand/app-icon.tsx 와 같이 유지한다.
+    링 바깥 반지름 = 150 + 64/2 = 182 ≤ 204.8(maskable 안전영역 반지름 = 512 × 80% ÷ 2).
+    그래서 이 파일 하나로 any / maskable 두 용도를 겸한다.
+
+    dasharray: C = 2π × 150 = 942.478, 목표 70% = 659.73.
+    round cap이 양 끝에 32씩 더 그리므로 dash = 659.73 − 64 = 595.73.
+  -->
+  <rect width="512" height="512" fill="#e11d48" />
+  <g fill="none" stroke="#ffffff" stroke-width="64">
+    <circle cx="256" cy="256" r="150" stroke-opacity=".32" />
+    <circle cx="256" cy="256" r="150" stroke-dasharray="595.73 346.74" stroke-linecap="round" transform="rotate(-90 256 256)" />
+  </g>
+</svg>

@@ -3,22 +3,55 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { DataRow, DataRowGroup } from "@/components/data/data-row";
 import { DualProgressBar } from "@/components/data/dual-progress-bar";
 import { EmptyState } from "@/components/data/empty-state";
+import { InlineError } from "@/components/data/error-state";
 import { Gauge } from "@/components/data/gauge";
 import { CategoryMark, ListRow } from "@/components/data/list-row";
 import { Panel } from "@/components/data/panel";
 import { ProgressBar } from "@/components/data/progress-bar";
+import { SectionHeader } from "@/components/data/section-header";
+import {
+  HeroPanelSkeleton,
+  ListSkeleton,
+  SectionHeaderSkeleton,
+  StatGridSkeleton,
+} from "@/components/data/skeletons";
 import { WarningBanner } from "@/components/data/warning-banner";
+import { Chip, ChipDivider, ChipRow } from "@/components/layout/chip";
 import { EstimateBadge } from "@/components/money/estimate-badge";
 import { MoneyText } from "@/components/money/money-text";
 import { PayerChip } from "@/components/money/payer-chip";
 import { StageBadge } from "@/components/money/stage-badge";
+import { BrandLockup } from "@/components/brand/brand-lockup";
+import { BrandMark } from "@/components/brand/brand-mark";
+import { FormAlert } from "@/components/form/form-alert";
 import { Button } from "@/components/ui/button";
-import { MAJORS, STAGES } from "@/lib/domain";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { MAJORS, PAYER_LABEL, PAYERS, STAGES } from "@/lib/domain";
 import { formatCompactWon, formatWon } from "@/lib/format";
 
-import { AmountInputDemo, BottomSheetDemo, SegmentedControlDemo } from "./gallery-demos";
+import {
+  AmountInputDemo,
+  BottomSheetDemo,
+  ErrorStateDemo,
+  SegmentedControlDemo,
+} from "./gallery-demos";
 
 export const metadata: Metadata = { title: "스타일 가이드" };
 
@@ -172,7 +205,7 @@ export default function DesignPage() {
           Phase PD · 스타일 가이드
         </span>
         <h1 className="text-4xl font-extrabold tracking-tighter text-balance sm:text-5xl">
-          웨딩 가계부 디자인 시스템
+          WedMate 디자인 시스템
         </h1>
         <p className="max-w-[64ch] text-body text-muted-foreground">
           5탭 화면이 실제로 쓰는 토큰·타입·밀도 규칙과 컴포넌트 갤러리입니다. 아래 조각들은 앱과{" "}
@@ -520,6 +553,88 @@ export default function DesignPage() {
             <BottomSheetDemo />
           </Cell>
 
+          <Cell name="data/list-row" caption="href/onClick — 행 전체가 터치 타깃">
+            <ul className="w-full overflow-hidden rounded-xl border border-border bg-card">
+              <ListRow
+                href="/design"
+                title="카테고리 관리"
+                meta={
+                  <span className="text-body-sm text-muted-foreground">대분류 · 중분류 · 소분류</span>
+                }
+              />
+              <ListRow
+                href="/design"
+                title="예식 정보"
+                meta={
+                  <span className="text-body-sm text-muted-foreground">
+                    예식일 · 최소보증인원 · 평균 축의금
+                  </span>
+                }
+              />
+            </ul>
+          </Cell>
+
+          <Cell name="data/section-header" caption="위 20px / 아래 8px로 스스로 당겨 붙는다">
+            <div className="flex w-full flex-col gap-4">
+              <SectionHeader
+                title="최근 지출"
+                meta="12건"
+                action={
+                  <a className="text-body-sm font-semibold text-primary" href="/design">
+                    전체 보기
+                  </a>
+                }
+              />
+              <Panel flush>
+                <ul>
+                  <ListRow title="스튜디오 스냅" trailing={<MoneyText value={220_000} />} />
+                </ul>
+              </Panel>
+              <SectionHeader level="sub" title="2026년 7월" meta={formatWon(1_240_000)} />
+            </div>
+          </Cell>
+
+          <Cell name="data/data-row" caption="라벨 — 값. 화면이 손으로 짜던 조립">
+            <Panel className="w-full">
+              <MoneyText size="lg" value={4_320_000} />
+              <DataRowGroup divided>
+                <DataRow label="예상 축의금" value={9_660_000} />
+                <DataRow label="결혼식 예산 합계" minus value={5_340_000} />
+                <DataRow
+                  hint="예상 참석 207명 · 최소보증 220명"
+                  label="보증인원 부족 추가분"
+                  minus
+                  tone="warning"
+                  value={585_000}
+                />
+              </DataRowGroup>
+            </Panel>
+          </Cell>
+
+          <Cell name="layout/chip" caption="36px + 8px 간격 = 44px 터치(D-031)">
+            <div className="w-full overflow-hidden">
+              <ChipRow label="결제자 필터">
+                <Chip selected>결제자 전체</Chip>
+                <Chip>예랑</Chip>
+                <Chip>예신</Chip>
+                <ChipDivider />
+                <Chip variant="solid" selected>
+                  스드메 › 드레스
+                </Chip>
+              </ChipRow>
+            </div>
+          </Cell>
+
+          <Cell name="data/panel" caption="tone — 강조 면을 화면이 손으로 안 적게">
+            <div className="grid w-full gap-2">
+              {(["default", "accent", "success", "warning", "muted"] as const).map((tone) => (
+                <Panel className="p-3" key={tone} tone={tone}>
+                  <span className="font-mono text-[11px]">tone=&quot;{tone}&quot;</span>
+                </Panel>
+              ))}
+            </div>
+          </Cell>
+
           <Cell name="data/empty-state" caption="?fixture=empty에서 전 탭 확인">
             <div className="w-full">
               <EmptyState
@@ -529,6 +644,301 @@ export default function DesignPage() {
                 action={<Button size="sm">지출 추가</Button>}
               />
             </div>
+          </Cell>
+
+          <Cell name="data/empty-state" caption="bordered — 점선. 비어 있음의 그릇">
+            <div className="w-full">
+              <EmptyState
+                bordered
+                icon={Receipt}
+                title="조건에 맞는 지출이 없어요"
+                description="필터를 지우면 12건이 모두 보입니다"
+                action={
+                  <Button size="sm" variant="secondary">
+                    필터 지우기
+                  </Button>
+                }
+              />
+            </div>
+          </Cell>
+        </div>
+      </Section>
+
+      {/* ── 08 상태 ── */}
+      <Section
+        num="06 / STATES"
+        title="빈 상태 · 로딩 · 에러 — 화면마다 다시 만들지 않는다"
+        description={
+          <>
+            기본 상태만 그린 화면은 미완성입니다. 로딩 골격은{" "}
+            <b className="font-semibold text-foreground">높이를 실제 컴포넌트에서 따와</b> 데이터가
+            도착할 때 레이아웃이 튀지 않게 하고, 에러 문구는 무엇이 잘못됐는지가 아니라{" "}
+            <b className="font-semibold text-foreground">어떻게 고치는지</b>를 씁니다. 부분 실패는
+            화면 전체를 갈아엎지 않고 <code className="font-mono text-xs">InlineError</code>로 그
+            자리에만 놓습니다.
+          </>
+        }
+      >
+        <div className="grid gap-2.5 lg:grid-cols-2">
+          <Cell name="data/skeletons" caption="탭 전환 골격 — (app)/loading.tsx가 쓴다">
+            <div className="w-full max-w-[420px]">
+              <div className="flex flex-col gap-4">
+                <HeroPanelSkeleton />
+                <StatGridSkeleton />
+                <SectionHeaderSkeleton />
+                <ListSkeleton rows={3} />
+              </div>
+            </div>
+          </Cell>
+
+          <div className="flex flex-col gap-2.5">
+            <Cell name="data/error-state" caption="화면 단위 실패 — (app)/error.tsx가 쓴다">
+              <div className="w-full">
+                <ErrorStateDemo />
+              </div>
+            </Cell>
+
+            <Cell name="data/error-state" caption="InlineError — 부분 실패. 나머지는 살아 있다">
+              <div className="w-full">
+                <InlineError message="이번 달 합계를 불러오지 못했어요. 아래 목록은 정상입니다." />
+              </div>
+            </Cell>
+
+            <Cell name="layout/screen" caption="블록 리듬 — 16px 기본, 섹션 헤더만 20/8">
+              <ul className="flex w-full flex-col gap-1.5 text-body-sm text-muted-foreground">
+                <li>
+                  본문 직계 자식 간격 <b className="font-semibold text-foreground">16px</b> — Screen이
+                  단독으로 정한다
+                </li>
+                <li>
+                  섹션 헤더 위 <b className="font-semibold text-foreground">20px</b> / 아래{" "}
+                  <b className="font-semibold text-foreground">8px</b> — 헤더가 자기 블록에 붙는다
+                </li>
+                <li>패널 내부 12px · 패널 패딩 16px</li>
+                <li>
+                  화면에서 <code className="font-mono text-xs">mt-*</code>로 간격을 덧대지 않는다
+                </li>
+              </ul>
+            </Cell>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── 06 폼 프리미티브 ── */}
+      <Section
+        num="07 / FORM"
+        title="shadcn 프리미티브 — 44px 규격화 결과"
+        description={
+          <>
+            P1의 폼 화면을 위해 받은 7종입니다. radix-nova 프리셋은{" "}
+            <b className="font-semibold text-foreground">데스크톱 밀도(h-8 = 32px)</b>라 받은 직후
+            48px/16px로 손봤고, 각 파일 상단에 덮어쓰기 경고 주석을 남겼습니다.{" "}
+            <code className="font-mono text-xs">npx shadcn add</code>를 다시 돌리면 이 규격이
+            사라지므로 주석의 표대로 되돌려야 합니다.
+          </>
+        }
+      >
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <Cell name="ui/input" caption="h-8 → h-12 (48px) · 16px">
+            <div className="flex w-full flex-col gap-2">
+              <Input placeholder="you@example.com" type="email" />
+              <Input aria-invalid defaultValue="잘못된 값" />
+              <Input disabled placeholder="비활성" />
+            </div>
+          </Cell>
+
+          <Cell name="ui/label + input" caption="Field가 얹을 라벨 규격 미리보기">
+            <div className="flex w-full flex-col gap-1.5">
+              <Label className="min-h-0 text-caption text-muted-foreground" htmlFor="demo-email">
+                이메일
+              </Label>
+              <Input id="demo-email" placeholder="you@example.com" type="email" />
+              <p className="text-body-sm text-muted-foreground">
+                로그인 링크를 이 주소로 보냅니다
+              </p>
+            </div>
+          </Cell>
+
+          <Cell name="ui/input (에러)" caption="--destructive = --primary라 규격 일치">
+            <div className="flex w-full flex-col gap-1.5">
+              <Input aria-invalid defaultValue="AB12" />
+              <p className="text-body-sm text-primary">
+                초대 코드를 찾을 수 없어요. 6자리를 다시 확인해 주세요.
+              </p>
+            </div>
+          </Cell>
+
+          <Cell name="ui/select" caption="트리거 48px · 항목 최소 44px">
+            <div className="w-full">
+              <Select defaultValue="bride">
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="결제자" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>결제자</SelectLabel>
+                    {PAYERS.map((payer) => (
+                      <SelectItem key={payer} value={payer}>
+                        {PAYER_LABEL[payer]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </Cell>
+
+          <Cell name="ui/checkbox" caption="상자 20px · 히트 영역 44px">
+            <div className="flex w-full flex-col gap-1">
+              {[
+                { id: "sig-1", label: "과거 경조사 참석" },
+                { id: "sig-2", label: "청첩장 모임" },
+                { id: "sig-3", label: "친분" },
+              ].map((item, index) => (
+                <div key={item.id} className="flex items-center gap-3">
+                  <Checkbox id={item.id} defaultChecked={index === 0} />
+                  <Label htmlFor={item.id}>{item.label}</Label>
+                </div>
+              ))}
+            </div>
+          </Cell>
+
+          <Cell name="ui/switch" caption="트랙 40×24 · 히트 영역 44px">
+            <div className="flex w-full flex-col gap-1">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="pm-1">예신 현금</Label>
+                <Switch id="pm-1" defaultChecked />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="pm-2">예랑 상품권</Label>
+                <Switch id="pm-2" />
+              </div>
+            </div>
+          </Cell>
+
+          <Cell name="ui/separator" caption="규격 변경 없음 — 덮어써도 무해">
+            <div className="flex w-full flex-col gap-3">
+              <span className="text-body-sm text-muted-foreground">결혼식</span>
+              <Separator />
+              <span className="text-body-sm text-muted-foreground">신혼여행</span>
+            </div>
+          </Cell>
+
+          <Cell name="ui/skeleton" caption="규격 변경 없음 — 크기는 호출부가 정한다">
+            <div className="flex w-full flex-col gap-2">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </Cell>
+
+          <Cell name="규격 대조" caption="nova 기본값 → 이 저장소">
+            <dl className="flex w-full flex-col gap-1.5 font-mono text-[11.5px]">
+              {[
+                ["input", "h-8 · 32px", "h-12 · 48px"],
+                ["select trigger", "h-8 · 32px", "h-12 · 48px"],
+                ["select item", "py-1 · 26px", "min-h-11 · 44px"],
+                ["checkbox 히트", "40×32px", "44×44px"],
+                ["switch 히트", "56×36px", "64×44px"],
+              ].map(([name, before, after]) => (
+                <div key={name} className="flex items-baseline justify-between gap-2">
+                  <dt className="text-muted-foreground">{name}</dt>
+                  <dd className="flex items-baseline gap-1.5">
+                    <span className="text-muted-foreground line-through">{before}</span>
+                    <span className="text-foreground">{after}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Cell>
+        </div>
+      </Section>
+
+      {/* ── 07 브랜드 ── */}
+      <Section
+        num="08 / BRAND"
+        title="WedMate 마크와 로크업"
+        description={
+          <>
+            마크는 <b className="font-semibold text-foreground">진행률 링</b>입니다 — 결혼반지이면서
+            동시에 이 앱의 예산 소진율 게이지입니다. 앱 전체가 진행률 바·게이지로 말하므로 아이콘과
+            제품이 같은 시각 언어를 씁니다. 같은 기하가{" "}
+            <code className="font-mono text-xs">brand-mark.tsx</code> ·{" "}
+            <code className="font-mono text-xs">lib/brand/app-icon.tsx</code> ·{" "}
+            <code className="font-mono text-xs">app/icon.svg</code> 세 곳에 있고(색 모델이 달라 코드
+            공유 불가) <b className="font-semibold text-foreground">한 곳을 고치면 셋 다 고칩니다.</b>
+          </>
+        }
+      >
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <Cell name="brand/brand-mark" caption="progress 0 / .35 / .7 / 1">
+            <div className="flex w-full items-center justify-around">
+              {[0, 0.35, 0.7, 1].map((p) => (
+                <BrandMark className="size-10" key={p} progress={p} />
+              ))}
+            </div>
+          </Cell>
+
+          <Cell name="brand/brand-mark" caption="16px에서도 형태가 남는가">
+            <div className="flex w-full items-end justify-around">
+              {["size-4", "size-6", "size-9", "size-14"].map((size) => (
+                <BrandMark className={size} key={size} />
+              ))}
+            </div>
+          </Cell>
+
+          {/* 근사치가 아니라 **실제 배포되는 파일**을 그대로 띄운다.
+              /icon.svg는 파비콘, /brand/mark-*.png는 매니페스트가 참조하는 바로 그 자산이다. */}
+          <Cell name="app/icon.svg" caption="실제 파비콘 파일 · 16 / 32 / 56px">
+            <div className="flex w-full items-end justify-around">
+              {[16, 32, 56].map((px) => (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  alt={`WedMate 아이콘 ${px}px`}
+                  height={px}
+                  key={px}
+                  src="/icon.svg"
+                  width={px}
+                />
+              ))}
+            </div>
+          </Cell>
+
+          <Cell name="brand/mark-*.png" caption="ImageResponse가 빌드 때 만든 래스터">
+            <div className="flex w-full items-end justify-around">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img alt="WedMate 192px 아이콘" height={48} src="/brand/mark-192.png" width={48} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt="WedMate 512px 아이콘 (iOS 마스크 미리보기)"
+                className="rounded-[22%]"
+                height={48}
+                src="/brand/mark-512.png"
+                width={48}
+              />
+            </div>
+          </Cell>
+
+          <Cell name="brand/brand-lockup" caption="stacked — 로그인·온보딩 첫 화면">
+            <div className="w-full">
+              <BrandLockup as="p" tagline="둘이 함께 쓰는 결혼 준비 가계부" />
+            </div>
+          </Cell>
+
+          <Cell name="brand/brand-lockup" caption="inline — 온보딩 2단계 상단">
+            <div className="w-full">
+              <BrandLockup as="p" layout="inline" />
+            </div>
+          </Cell>
+
+          <Cell name="form/form-alert" caption="폼 단위 에러 · role=alert">
+            <div className="w-full">
+              <FormAlert>이메일 또는 비밀번호가 맞지 않아요. 다시 확인해 주세요.</FormAlert>
+            </div>
+          </Cell>
+
+          <Cell name="auth-wash" caption="불투명 토큰 2정지점 — color-mix 없음">
+            <div className="auth-wash h-24 w-full rounded-xl border border-border" />
           </Cell>
         </div>
       </Section>

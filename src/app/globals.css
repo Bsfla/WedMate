@@ -117,6 +117,13 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* ── 표면 높이(elevation) ──────────────────────────────────────
+     이 앱의 기본 표면은 그림자가 아니라 1px 테두리다. 그림자는 **떠 있는 것**에만
+     쓴다 — 세그먼트의 선택된 알약, 팝오버, FAB. 라이트에서 통하던 검정 알파
+     그림자는 어두운 바탕에서 사라지므로 다크는 값을 따로 잡았다. (→ D-041) */
+  --shadow-raised: var(--elevation-raised);
+  --shadow-float: var(--elevation-float);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -186,6 +193,9 @@
   --estimate-tint: #fef6f8;
   --estimate-stripe: #f5b2c1;
 
+  --elevation-raised: 0 1px 3px rgba(24, 24, 27, 0.09);
+  --elevation-float: 0 8px 24px -6px rgba(24, 24, 27, 0.18);
+
   --sidebar: #ffffff;
   --sidebar-foreground: #18181b;
   --sidebar-primary: #e11d48;
@@ -252,6 +262,13 @@
   --estimate-tint: #231c1f;
   --estimate-stripe: #66363f;
 
+  /* 어두운 바탕에서는 검정 그림자가 보이지 않는다. 떠 있다는 신호를
+     안쪽 1px 하이라이트가 대신 만들고, 그림자는 바닥을 눌러 주는 역할만 한다. */
+  --elevation-raised:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.6);
+  --elevation-float:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 28px -8px rgba(0, 0, 0, 0.75);
+
   --sidebar: #1a181b;
   --sidebar-foreground: #f4f2f3;
   --sidebar-primary: #fb7185;
@@ -277,11 +294,43 @@
   );
 }
 
+/*
+  가로 스크롤 칩 줄에서 스크롤바를 감춘다. 모바일에는 원래 안 보이지만
+  데스크톱 폭(480px 셸)에서는 막대가 나와 칩 줄 높이가 8px씩 튄다.
+  키보드 스크롤·휠은 그대로 동작한다 — 시각적 막대만 감춘다.
+*/
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility hatch-estimate-strong {
   background-image: repeating-linear-gradient(
     45deg,
     var(--estimate-stripe) 0 3px,
     transparent 3px 7px
+  );
+}
+
+/*
+  인증·온보딩 셸 상단의 로즈 웨시.
+
+  정지점 두 개가 전부 :root / .dark에 정의된 **불투명 hex 토큰**이다 —
+  color-mix()도, transparent로 향하는 알파 보간도 쓰지 않는다.
+  그라디언트 정지점에 color-mix()를 쓰면 Tailwind v4가 var(--원색) 폴백을 자동으로 깔아
+  옅은 틴트가 100% 불투명으로 뒤집힌다. (→ D-012)
+
+  끝 정지점이 --background와 같은 값이라 요소 경계에 이음매가 생기지 않는다.
+  라이트 #fff1f3 → #f6f5f6 / 다크 #2a1319 → #0f0e10.
+*/
+@utility auth-wash {
+  background-image: radial-gradient(
+    130% 90% at 50% 0%,
+    var(--primary-soft) 0%,
+    var(--background) 68%
   );
 }
 

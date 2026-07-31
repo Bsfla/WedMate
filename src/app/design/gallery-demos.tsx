@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ErrorState } from "@/components/data/error-state";
 import { BottomSheet } from "@/components/layout/bottom-sheet";
 import { SegmentedControl } from "@/components/layout/segmented-control";
 import { AmountInput } from "@/components/money/amount-input";
@@ -62,5 +63,19 @@ export function BottomSheetDemo() {
         </p>
       </BottomSheet>
     </>
+  );
+}
+
+/** 재시도가 실제로 동작하는 것을 보이기 위한 데모. 실물은 `(app)/error.tsx`가 쓴다. */
+export function ErrorStateDemo() {
+  const [tries, setTries] = useState(0);
+
+  return (
+    <ErrorState
+      description="네트워크가 끊겼거나 서버가 응답하지 않았습니다. 잠시 후 다시 시도해 주세요."
+      detail={`오류 코드 3f9a2c · 재시도 ${tries}회`}
+      onRetry={() => setTries((prev) => prev + 1)}
+      title="결산을 불러오지 못했어요"
+    />
   );
 }
