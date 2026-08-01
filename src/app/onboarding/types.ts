@@ -68,11 +68,4 @@ export const ONBOARDING_COPY = {
   budgetTooLarge: "총 예산이 너무 커요. 1조 원 미만으로 입력해 주세요.",
 } as const;
 
-/**
- * 매핑하지 않은 서버 오류. **삼키지 않는다** — 원인을 알 수 없는 실패가 가장 고치기 어렵다.
- * `lead`는 "참여하지" · "스페이스를 만들지"처럼 문장 앞부분을 통째로 받는다
- * (한국어라 어간만 받으면 "만들지하지 못했어요"가 된다).
- */
-export function unexpectedMessage(lead: string, code: string): string {
-  return `${lead} 못했어요. 잠시 뒤 다시 시도해 주세요. (${code})`;
-}
+/* `unexpectedMessage`는 `@/lib/rpc-error`로 옮겼다 — 초대·스페이스 관리도 같은 문장을 쓴다. */

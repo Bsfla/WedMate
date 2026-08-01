@@ -936,10 +936,13 @@ export type Database = {
         }
       }
       current_couple_id: { Args: never; Returns: string }
+      delete_couple: { Args: never; Returns: undefined }
+      leave_couple: { Args: never; Returns: undefined }
       redeem_invite: {
         Args: { p_code: string; p_display_name: string }
         Returns: string
       }
+      remove_member: { Args: { p_user_id: string }; Returns: undefined }
       seed_couple_defaults: {
         Args: { p_couple_id: string }
         Returns: undefined

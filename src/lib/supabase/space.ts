@@ -12,6 +12,7 @@
 import { cache } from "react";
 
 import type { Side } from "@/lib/domain";
+import { REMOVE_WINDOW_HOURS } from "@/lib/membership";
 
 import { isSupabaseConfigured } from "./env";
 import { createClient } from "./server";
@@ -21,11 +22,23 @@ export type SessionUser = {
   email: string | null;
 };
 
+/* `REMOVE_WINDOW_HOURS`는 `@/lib/membership`에 있다 — 화면 문구가 쓰는 값이라
+   `next/headers`에 닿는 이 모듈에 두면 클라이언트 번들이 깨진다. */
+
 export type SpaceMember = {
+  userId: string;
   side: Side;
   displayName: string;
   /** 지금 로그인한 사람인가. 설정 화면의 "· 나" 표기에 쓴다. */
   isMe: boolean;
+  /**
+   * 내가 이 사람을 내보낼 수 있는가 (→ D-058).
+   *
+   * 두 조건을 모두 만족할 때만 참이다 — **나보다 늦게 들어왔고**, 가입한 지 24시간이 안 됐다.
+   * 앞의 조건이 없으면 유출된 코드로 들어온 쪽이 원래 주인을 쫓아낼 수 있다.
+   * 거짓일 때 화면은 버튼을 **비활성이 아니라 아예 그리지 않는다** (→ D-061).
+   */
+  canRemove: boolean;
 };
 
 export type Space = {
@@ -57,18 +70,33 @@ export type SpaceContext =
   | { status: "anonymous" }
   | { status: "unavailable"; reason: "unconfigured" | "error"; user: SessionUser | null };
 
-function toMembers(
-  rows: { side: string; display_name: string; user_id: string }[],
-  userId: string,
-): SpaceMember[] {
+type MemberRow = { side: string; display_name: string; user_id: string; created_at: string };
+
+function toMembers(rows: MemberRow[], userId: string): SpaceMember[] {
+  // 내 가입 시각. 축출 가능 여부가 "나보다 늦게 들어왔는가"에 걸려 있어 먼저 뽑는다.
+  const mine = rows.find((row) => row.user_id === userId);
+  const myJoinedAt = mine ? new Date(mine.created_at).getTime() : null;
+  const windowMs = REMOVE_WINDOW_HOURS * 3_600_000;
+  const now = Date.now();
+
   const members: SpaceMember[] = [];
   for (const row of rows) {
     // side는 text + CHECK라 타입 생성기가 string으로 준다. 여기서 좁힌다.
     if (row.side !== "groom" && row.side !== "bride") continue;
+
+    const isMe = row.user_id === userId;
+    const joinedAt = new Date(row.created_at).getTime();
+
     members.push({
+      userId: row.user_id,
       side: row.side,
       displayName: row.display_name,
-      isMe: row.user_id === userId,
+      isMe,
+      canRemove:
+        !isMe &&
+        myJoinedAt !== null &&
+        joinedAt > myJoinedAt &&
+        now - joinedAt < windowMs,
     });
   }
   return members;
@@ -107,7 +135,7 @@ export const getSpaceContext = cache(async (): Promise<SpaceContext> => {
         "id, name, wedding_date, total_budget, guest_min_guarantee, avg_gift_amount, meal_cost_per_head",
       )
       .maybeSingle(),
-    supabase.from("couple_members").select("side, display_name, user_id"),
+    supabase.from("couple_members").select("side, display_name, user_id, created_at"),
   ]);
 
   if (coupleResult.error) {

@@ -3,41 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { rpcCode, unexpectedMessage } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/server";
 
-import {
-  MAX_TOTAL_BUDGET,
-  ONBOARDING_COPY,
-  unexpectedMessage,
-  type OnboardingState,
-} from "./types";
+import { MAX_TOTAL_BUDGET, ONBOARDING_COPY, type OnboardingState } from "./types";
 
 /* ⚠️ 이 파일은 `"use server"`다. **async 함수만** export할 수 있다 —
    타입·상수는 전부 `./types`에 있다. */
 
-/**
- * RPC가 `raise exception`으로 던지는 토큰들. `supabase/migrations/0007_space_rpcs.sql`이 원본이다.
- *
- * 🔴 **`error.code`(SQLSTATE)로 분기하면 안 된다.** `ALREADY_IN_COUPLE`과 `COUPLE_FULL`이
- * 둘 다 `23505`고, `INVALID_CODE`·`INVALID_SIDE`·`DISPLAY_NAME_REQUIRED`·`WEDDING_DATE_REQUIRED`가
- * 전부 `22023`이다. 구분은 메시지에 실려 오는 토큰으로만 가능하다.
- */
-const RPC_CODES = [
-  "AUTH_REQUIRED",
-  "ALREADY_IN_COUPLE",
-  "COUPLE_FULL",
-  "INVALID_CODE",
-  "INVALID_SIDE",
-  "DISPLAY_NAME_REQUIRED",
-  "WEDDING_DATE_REQUIRED",
-  "NO_COUPLE",
-] as const;
-
-/** PostgREST는 raise 문구를 `message`에 싣지만, 드라이버·버전에 따라 details/hint로도 온다. */
-function rpcCode(error: { message?: string | null; details?: string | null; hint?: string | null }) {
-  const haystack = `${error.message ?? ""} ${error.details ?? ""} ${error.hint ?? ""}`.toUpperCase();
-  return RPC_CODES.find((code) => haystack.includes(code)) ?? null;
-}
+/* RPC 토큰 분기는 `@/lib/rpc-error`로 올렸다 — 온보딩·초대·스페이스 관리 셋이 같은 규칙을 쓴다.
+   SQLSTATE로 나누면 안 되는 이유는 그 파일 주석에 있다. */
 
 function fail(state: Omit<OnboardingState, "status">): OnboardingState {
   return { status: "error", ...state };
