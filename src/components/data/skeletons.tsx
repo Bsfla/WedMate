@@ -22,16 +22,22 @@ import { cn } from "@/lib/utils";
 export function HeaderSkeleton({
   subtitle = true,
   action = "icon",
+  back = false,
 }: {
   subtitle?: boolean;
   /** 헤더 우측이 아이콘 버튼인지(size-11), 텍스트 버튼인지(h-9), 비었는지. */
   action?: "icon" | "button" | false;
+  /** `/settings/*` 하위 화면처럼 좌측에 뒤로가기가 있는 헤더. 없으면 제목이 10px 왼쪽에서 시작한다. */
+  back?: boolean;
 }) {
   return (
     <div className="sticky top-0 z-30 flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 pt-1.5 pb-3">
-      <div className="flex flex-col gap-1.5">
-        <Skeleton className="h-[18px] w-28 rounded" />
-        {subtitle && <Skeleton className="h-[13px] w-40 rounded" />}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {back && <Skeleton className="-ml-2.5 size-11 shrink-0 rounded-xl" />}
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-[18px] w-28 rounded" />
+          {subtitle && <Skeleton className="h-[13px] w-40 rounded" />}
+        </div>
       </div>
       {action === "icon" && <Skeleton className="size-11 shrink-0 rounded-xl" />}
       {action === "button" && <Skeleton className="h-9 w-[76px] shrink-0 rounded-[10px]" />}

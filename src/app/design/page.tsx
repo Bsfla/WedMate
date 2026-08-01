@@ -52,6 +52,8 @@ import {
   AmountInputDemo,
   BottomSheetDemo,
   CodeInputDemo,
+  ConfirmSheetDemo,
+  CopyFieldDemo,
   DateFieldDemo,
   ErrorStateDemo,
   SegmentedControlDemo,
@@ -562,6 +564,16 @@ export default function DesignPage() {
 
           <Cell name="layout/bottom-sheet" caption="Radix Dialog 기반 · 85dvh">
             <BottomSheetDemo />
+          </Cell>
+
+          <Cell name="data/copy-field" caption="폴백의 본체는 버튼이 아니라 값이다(D-062)">
+            <div className="w-full">
+              <CopyFieldDemo />
+            </div>
+          </Cell>
+
+          <Cell name="layout/confirm-sheet" caption="잃는 것을 구체적으로 · 제출 중엔 안 닫힘">
+            <ConfirmSheetDemo />
           </Cell>
 
           <Cell name="data/list-row" caption="href/onClick — 행 전체가 터치 타깃">

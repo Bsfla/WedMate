@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 
+import { CopyField } from "@/components/data/copy-field";
 import { ErrorState } from "@/components/data/error-state";
 import { CodeInput, INVITE_CODE_HINT } from "@/components/form/code-input";
 import { DateField } from "@/components/form/date-field";
 import { Field } from "@/components/form/field";
 import { BottomSheet } from "@/components/layout/bottom-sheet";
+import { ConfirmSheet } from "@/components/layout/confirm-sheet";
 import { SegmentedControl } from "@/components/layout/segmented-control";
 import { AmountInput } from "@/components/money/amount-input";
 import { Button } from "@/components/ui/button";
@@ -202,6 +204,74 @@ export function BottomSheetDemo() {
         </p>
       </BottomSheet>
     </>
+  );
+}
+
+/**
+ * 초대 코드 표시 + 복사/공유. 실물은 `/settings/invite`가 쓴다.
+ *
+ * **공유 버튼은 `navigator.share`가 있을 때만 보인다** — 데스크톱 브라우저에서 이 데모를 열면
+ * 복사 하나가 전폭으로 뜨는 게 정상이다. 세로 높이는 두 경우가 같다(둘 다 h-12 한 줄).
+ * 복사가 막힌 환경(비-HTTPS)에서는 버튼을 눌러 실패 문구까지 확인할 수 있다.
+ */
+export function CopyFieldDemo() {
+  return (
+    <CopyField
+      badge={
+        <span className="shrink-0 rounded-lg border border-border bg-muted px-2 py-1 text-caption text-muted-foreground">
+          예신 자리
+        </span>
+      }
+      caption={
+        <p className="num text-body-sm text-muted-foreground">8월 3일 (일) 15:24까지 · 1회용</p>
+      }
+      hint="코드를 받은 사람은 우리 가계부를 함께 보게 돼요. 실수로 다른 사람이 들어왔다면 24시간 안에 설정에서 내보낼 수 있어요."
+      label="초대 코드"
+      shareText={"WedMate 결혼 준비 가계부에 초대할게요.\n초대 코드: K7X2M9\n48시간 안에 한 번만 쓸 수 있어요."}
+      value="K7X2M9"
+    />
+  );
+}
+
+/**
+ * 되돌리기 어려운 동작의 확인 시트. 오른쪽 것만 **게이트 체크박스**를 갖는다 —
+ * 스페이스 삭제처럼 cascade로 원장이 사라지는 동작에만 붙인다.
+ */
+export function ConfirmSheetDemo() {
+  const [open, setOpen] = useState<"regenerate" | "delete" | null>(null);
+
+  return (
+    <div className="flex w-full flex-wrap gap-2">
+      <Button onClick={() => setOpen("regenerate")} size="sm" variant="secondary">
+        재발급 확인
+      </Button>
+      <Button onClick={() => setOpen("delete")} size="sm" variant="secondary">
+        삭제 확인 — 게이트
+      </Button>
+
+      <ConfirmSheet
+        action={() => setOpen(null)}
+        body="지금 코드 K7X2M9는 즉시 쓸 수 없게 돼요. 이미 상대에게 보냈다면 그 코드로는 들어올 수 없어요."
+        cancelLabel="그대로 둘게요"
+        confirmLabel="새 코드 만들기"
+        onOpenChange={(next) => setOpen(next ? "regenerate" : null)}
+        open={open === "regenerate"}
+        pendingLabel="코드 만드는 중…"
+        title="새 코드를 만들까요?"
+      />
+
+      <ConfirmSheet
+        acknowledge="예산·지출·하객 기록이 모두 지워지는 걸 이해했어요"
+        action={() => setOpen(null)}
+        body="예산·지출·하객·카테고리가 모두 지워져요. 되돌릴 수 없어요. 삭제하면 처음 화면으로 돌아가 새로 시작하게 돼요."
+        cancelLabel="그대로 둘게요"
+        confirmLabel="스페이스 삭제"
+        onOpenChange={(next) => setOpen(next ? "delete" : null)}
+        open={open === "delete"}
+        pendingLabel="삭제하는 중…"
+        title="스페이스를 삭제할까요?"
+      />
+    </div>
   );
 }
 

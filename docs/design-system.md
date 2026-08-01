@@ -484,14 +484,68 @@ Separator · pt-8 · 이메일(text-caption text-muted-foreground) · Button var
 `mt-auto`로 바닥에 붙고 본문이 길면 뒤를 따라온다. `footer`를 넘기지 않으면 DOM에서 완전히
 사라지므로 `/login`은 이전과 **1px도 다르지 않다.**
 
-### 설정 하위 화면 패턴
+### 설정 하위 화면 패턴 — ✅ `/settings/invite`가 선례다 (→ D-063)
 
 설정 홈의 각 항목은 `/settings/*`로 들어간다. 하위 화면은 공통으로:
 
-- 헤더 좌측에 **뒤로가기**(44px), 제목은 항목 이름. `AppHeader`에 `back` prop을 추가한다.
+- **`<AppHeader back="/settings" action={null} title="…" />`**. 좌측 뒤로가기 44px,
+  **우측은 반드시 비운다** — 기본 액션(설정 아이콘)은 지금 있는 곳으로 가는 링크라 무의미하다.
+  `back`은 history가 아니라 **경로**를 받는다. 딥링크로 바로 들어온 사람에게도 올라갈 곳이 필요하고
+  `router.back()`은 그 경우 앱 밖으로 나간다.
+- 하단 탭이 있어도 뒤로가기를 빼지 않는다 — iOS PWA에는 하드웨어 뒤로가기가 없다.
 - 하단 탭은 **유지**한다(설정도 탭 셸 안이다). 온보딩과 구분되는 지점.
 - 저장은 **자동 저장**을 기본으로 한다. 명시적 저장 버튼은 온보딩과 바텀시트에만 둔다 —
   설정은 한 항목씩 고치는 화면이라 매번 저장을 누르게 하면 번거롭다.
+  **다만 폼이 아니라 액션 화면(발급·내보내기·삭제)은 명시적 버튼이다** — 자동 저장할 값이 없다.
+- 라우트마다 **자기 `loading.tsx`**를 둔다. 부모(`settings/loading.tsx`)를 물려받으면
+  설정 홈의 골격(스페이스 카드 + 메뉴 5행)이 잠깐 떴다가 통째로 갈린다.
+  `HeaderSkeleton`에 **`back` 을 켜는 것을 빠뜨리지 않는다** — 빼면 제목이 44px 튄다.
+
+### 되돌리기 어려운 동작 — `layout/confirm-sheet.tsx`
+
+확인이 필요한 자리가 넷이다(코드 재발급 · 상대 내보내기 · 스페이스 나가기 · 삭제).
+`window.confirm`을 쓰지 않는 이유는 스타일이 아니라 **문구다** — 무엇을 잃는지 두 문장으로
+설명할 자리가 없다.
+
+| 규칙 | 왜 |
+|---|---|
+| **잃는 것을 구체적으로 쓴다** | "정말 하시겠습니까?"는 확인이 아니라 소음이다. 죽을 코드는 시트 본문에 문자로 박는다 |
+| **제출 중에는 닫히지 않는다** | ESC·바깥 탭·취소 전부 막는다. 왕복 중에 시트가 사라지면 취소된 줄 안다 |
+| `acknowledge` 게이트는 **삭제에만** | 되돌릴 수 없는 것에만 체크박스를 건다. 남발하면 체크가 습관이 되어 아무것도 막지 못한다 |
+| 확인 버튼은 `variant="default"` | `destructive`(로즈 10% 틴트 위 로즈 글자)는 16px 본문 대비가 AA 경계다. 위험 신호는 색이 아니라 게이트·아이콘·문구가 진다 |
+
+**확인 비용은 잃을 것이 있을 때만 낸다.** 초대 코드 *최초* 발급에는 확인이 없고 *재발급*에만 있다.
+
+### 값 하나를 크게 보여주고 복사시키는 자리 — `data/copy-field.tsx`
+
+**폴백의 본체는 버튼이 아니라 값이다** (→ D-062). `navigator.clipboard`·`navigator.share`는
+비-HTTPS·데스크톱·권한 거부에서 통째로 없거나 예외를 던진다.
+
+- 값은 타입 스케일 최대치 `text-display`(32px) + `.num` + `select-all`. 전부 실패해도
+  사람이 읽거나 한 번 눌러 선택해 옮길 수 있다.
+- 공유는 **지원될 때만** 렌더한다. 미지원이면 복사가 전폭이 되는데 둘 다 `size="lg"` 한 줄이라
+  **세로 높이가 변하지 않는다** — 하이드레이션 뒤 버튼이 생겨도 점프가 없다.
+- 능력 감지에 `useEffect` + `setState`를 쓰지 않는다(이 저장소는 `set-state-in-effect`가 error).
+  `useSyncExternalStore`가 서버 스냅샷(false)과 클라이언트 스냅샷을 나눠 준다.
+- `navigator.share`의 `AbortError`(사용자가 시트를 닫음)는 **실패가 아니다.** 문구를 띄우지 않는다.
+- 값 블록은 `bg-primary-soft` + `border-primary/25`이고 담는 패널은 `tone="default"`다.
+  반대로 하면 `#fff1f3` 위 `#ffffff`(다크 `#2a1319` 위 `#1a181b`)가 되어 면 대비가 사라진다.
+
+### `"use client"`가 문구 모듈을 통해 서버 모듈을 끌고 온다 🔴
+
+`app/**/types.ts`(문구·상태 타입)는 **클라이언트 컴포넌트가 import한다.** 그 파일이
+`lib/supabase/*`에서 상수 하나만 가져와도 `next/headers`까지 딸려 들어와 빌드가 깨진다:
+
+```
+invite-block.tsx (client) → settings/invite/types.ts → lib/supabase/invite.ts → ./server → next/headers  ✗
+```
+
+→ 상수는 문구 모듈에 다시 적되 **원본의 리터럴 타입에 묶는다.** 타입 위치의 `import(...)`는
+런타임에 남지 않고, 한쪽만 바뀌면 컴파일이 실패한다.
+
+```ts
+const INVITE_TTL_HOURS: typeof import("@/lib/supabase/invite").INVITE_TTL_HOURS = 48;
+```
 
 ### 카테고리 트리 표현
 
@@ -512,9 +566,10 @@ components/form/
   code-input.tsx       ✅ 6자리 초대 코드 — 한 칸 · 58px · 자간 0.28em
 components/layout/
   auth-shell.tsx       ✅ (auth)·onboarding 공용 셸 — 웨시 + 24px 패딩 + 하단 슬롯
-  back-header.tsx      AppHeader에 back prop 추가로 갈음할지 검토
+  back-header.tsx      ✅ 별도로 만들지 않았다 — AppHeader의 `back` prop으로 갈음
+  confirm-sheet.tsx    ✅ 되돌리기 어려운 동작 확인 — BottomSheet + 폼 + (선택) 게이트 체크박스
 components/data/
-  copy-field.tsx       초대 코드 표시 + 복사/공유 버튼
+  copy-field.tsx       ✅ 초대 코드 표시 + 복사/공유 버튼 + 폴백
 ```
 
 `form/*`가 갖는 것은 **의미론**(라벨 규격 · 도움말 · 에러 · `aria-describedby` 연결)이고,

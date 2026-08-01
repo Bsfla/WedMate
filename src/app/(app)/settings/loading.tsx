@@ -38,6 +38,10 @@ export default function SettingsLoading() {
 
       <SectionHeaderSkeleton />
       <ListSkeleton leading={false} rows={2} trailing={false} />
+
+      {/* 스페이스 관리: 나가기 또는 삭제 한 행. 둘은 배타적이라 언제나 1행이다 (→ D-058). */}
+      <SectionHeaderSkeleton />
+      <ListSkeleton rows={1} trailing={false} />
     </ScreenSkeleton>
   );
 }

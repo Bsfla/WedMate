@@ -46,9 +46,28 @@
       `(app)/layout.tsx` 스페이스 가드 + `lib/supabase/space.ts`(판정 단일 출처, `cache()` 1왕복).
       폼 조립 3종(`text-field` `date-field` `code-input`) · `auth-shell` · `app/error.tsx` 신설.
       **가입 후 스페이스 없이 목업 홈에 떨어지던 구멍이 막혔다.** lint/build 무경고 · 라우트 17개
-- ⬜ 다음: **P1-4 설정 CRUD** — `/settings/{wedding,invite,categories,payment-methods,savings}`.
-      🔴 지금 가장 아픈 곳은 **초대 화면 부재**다 — `create_invite()` RPC는 있는데 코드를 발급할
-      UI가 없어서, 실제로는 2인 스페이스를 만들 수 없다 (온보딩의 "코드로 참여"가 갈 곳이 없다)
+- ✅ **오참여 복구 — 마이그레이션 0008** (2026-08-01, → D-058) — `leave_couple()` ·
+      `remove_member()`(가입 후 24시간 + **나보다 늦게 들어온 사람만**) · `delete_couple()`(혼자일 때만).
+      초대 코드 만료 **7일 → 48시간**. `couple_members`엔 DELETE 정책도 GRANT도 없어서
+      한 번 들어오면 뺄 방법이 없던 상태를 닫았다.
+      **로컬 검증 11개 경로 통과 → 원격 적용 완료 → `types.ts` 재생성.**
+
+      | 검증 | 결과 |
+      |---|---|
+      | 초대 만료 48시간 | ✅ |
+      | 나중 참여자가 생성자 축출 시도 | ✅ `NOT_REMOVABLE` — 복구 수단이 공격 수단으로 뒤집히는 것을 막음 |
+      | 가입 23h 뒤 축출 / 25h 뒤 축출 | ✅ 성공 / ✅ `REMOVE_WINDOW_CLOSED` |
+      | 2인일 때 탈퇴 / 혼자일 때 탈퇴 | ✅ / ✅ `LAST_MEMBER` |
+      | 2인일 때 삭제 / 혼자일 때 삭제 | ✅ `NOT_ALONE` / ✅ cascade로 카테고리 40건까지 소멸 |
+
+- ✅ **P1-4 초대 · 스페이스 관리** (2026-08-01, → D-059~D-064) —
+      `/settings/invite`(발급·재발급·복사·공유·멤버) + `/settings` 하단 스페이스 관리(나가기·내보내기·삭제).
+      `lib/rpc-error.ts` 승격(온보딩 중복 제거) · `lib/membership.ts` 신설(번들 경계, → D-064) ·
+      `CopyField` · `ConfirmSheet` · `MemberList` · `HeaderSkeleton back`.
+      **P1 완료 판정 2~4번(코드 발급 → 참여 → 역할 자동 배정 → 재사용·만료·초과 거부)이
+      비로소 화면으로 실행 가능해졌다** — 지금까지는 DB에서만 확인했다.
+      lint/build 무경고 · 라우트 18개
+- ⬜ 다음: **P1-4 나머지** — `/settings/{wedding,categories,payment-methods,savings}`
 
 ## 단계
 
@@ -123,7 +142,9 @@
 - [x] 폼 조립 컴포넌트 — `form/{field,form-alert,text-field,date-field,code-input}` (2026-08-01)
       서버 응답으로 입력을 비울 때는 `key` 리마운트 (→ D-055)
 - [ ] `/settings/wedding` — 예식 정보 5개 필드
-- [ ] `/settings/invite` — 코드 발급 · 복사 · 공유 · 멤버 목록
+- [x] `/settings/invite` — 코드 발급 · 복사 · 공유 · 멤버 목록 (2026-08-01, → D-059~D-063)
+- [x] `/settings` 스페이스 관리 — 나가기 · 내보내기 · 삭제 (2026-08-01, → D-058)
+      조건이 배타적이라 한 행만 뜬다: 혼자 → 삭제 / 둘 → 나가기 (+`canRemove`면 내보내기)
 - [ ] `/settings/categories` — 3단 트리, 추가/이름변경/순서변경/보관
 - [ ] `/settings/payment-methods` — 활성화 토글 + 라벨 편집
 - [ ] `/settings/savings` — 저축 목표 (P1 중 가장 후순위)
