@@ -106,6 +106,32 @@ export function formatDateLabel({ month, day }: YearMonthDay): string {
   return day === null ? `${month}월 중` : `${month}월 ${day}일`;
 }
 
+/* 요일까지 읽어 주는 확인용 포맷. `timeZone: "UTC"`가 핵심이다 — 아래에서 날짜를
+   UTC 자정으로 만들기 때문에, 이게 없으면 UTC보다 뒤진 시간대에서 하루 전날로 찍힌다. */
+const fullDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  weekday: "long",
+  timeZone: "UTC",
+});
+
+/**
+ * "2027-03-20" -> "2027년 3월 20일 토요일".
+ * 날짜 입력의 **확인용 리드아웃** 전용이다 — 리스트·카드의 날짜는 `formatDateLabel`을 쓴다.
+ * 형식이 어긋나거나 존재하지 않는 날짜("2027-02-31")면 null을 돌려준다.
+ */
+export function formatFullDate(isoDate: string): string | null {
+  const parsed = parseISODate(isoDate);
+  if (!parsed) return null;
+
+  const date = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day ?? 1));
+  // Date.UTC는 2월 31일을 3월 3일로 굴려 버린다. 굴러갔으면 입력이 틀린 것이다.
+  if (date.getUTCMonth() !== parsed.month - 1) return null;
+
+  return fullDateFormatter.format(date);
+}
+
 /** 시각을 버리고 날짜만으로 비교한다 (타임존 경계에서 D-day가 흔들리지 않게). */
 export function daysUntil(isoDate: string, from: Date = new Date()): number | null {
   const target = parseISODate(isoDate);

@@ -27,6 +27,7 @@ import { StageBadge } from "@/components/money/stage-badge";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { FormAlert } from "@/components/form/form-alert";
+import { TextField } from "@/components/form/text-field";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -47,10 +48,14 @@ import { MAJORS, PAYER_LABEL, PAYERS, STAGES } from "@/lib/domain";
 import { formatCompactWon, formatWon } from "@/lib/format";
 
 import {
+  AmountInputBudgetDemo,
   AmountInputDemo,
   BottomSheetDemo,
+  CodeInputDemo,
+  DateFieldDemo,
   ErrorStateDemo,
   SegmentedControlDemo,
+  SegmentedControlEmptyDemo,
 } from "./gallery-demos";
 
 export const metadata: Metadata = { title: "스타일 가이드" };
@@ -515,6 +520,12 @@ export default function DesignPage() {
             </div>
           </Cell>
 
+          <Cell name="money/amount-input" caption='steps="budget" — 총예산 · 저축 목표'>
+            <div className="w-full">
+              <AmountInputBudgetDemo />
+            </div>
+          </Cell>
+
           <Cell name="data/warning-banner" caption="면 D97706 / 글자 B45309">
             <div className="flex w-full flex-col gap-2.5">
               <WarningBanner
@@ -727,17 +738,53 @@ export default function DesignPage() {
       {/* ── 06 폼 프리미티브 ── */}
       <Section
         num="07 / FORM"
-        title="shadcn 프리미티브 — 44px 규격화 결과"
+        title="폼 — 조립 컴포넌트와 44px 프리미티브"
         description={
           <>
-            P1의 폼 화면을 위해 받은 7종입니다. radix-nova 프리셋은{" "}
-            <b className="font-semibold text-foreground">데스크톱 밀도(h-8 = 32px)</b>라 받은 직후
-            48px/16px로 손봤고, 각 파일 상단에 덮어쓰기 경고 주석을 남겼습니다.{" "}
+            두 층입니다. <code className="font-mono text-xs">components/form/*</code>는{" "}
+            <b className="font-semibold text-foreground">의미론</b>(라벨 규격 · 도움말 · 에러 ·
+            <code className="font-mono text-xs">aria-describedby</code>)을,{" "}
+            <code className="font-mono text-xs">ui/*</code>는{" "}
+            <b className="font-semibold text-foreground">밀도만</b> 책임집니다(D-032). 아래
+            프리미티브 7종은 radix-nova의 데스크톱 밀도(h-8 = 32px)라 받은 직후 48px/16px로
+            손봤고, 각 파일 상단에 덮어쓰기 경고 주석을 남겼습니다.{" "}
             <code className="font-mono text-xs">npx shadcn add</code>를 다시 돌리면 이 규격이
             사라지므로 주석의 표대로 되돌려야 합니다.
           </>
         }
       >
+        <div className="grid gap-2.5 lg:grid-cols-2">
+          <Cell name="form/text-field" caption="Field + Input. 라벨·도움말·에러 한 벌">
+            <div className="flex w-full flex-col gap-4">
+              <TextField
+                defaultValue="김서연"
+                help="청첩장에 들어갈 이름이 아니라 앱에서 서로를 부르는 이름이에요"
+                id="demo-tf-name"
+                label="이름"
+                placeholder="이름"
+              />
+              <TextField
+                defaultValue="김"
+                error="이름이 한 글자예요. 서로를 알아볼 수 있게 두 글자 이상으로 적어 주세요."
+                id="demo-tf-error"
+                label="이름 — 에러"
+              />
+            </div>
+          </Cell>
+
+          <Cell name="layout/segmented-control" caption="미선택(value=null) + invalid 링">
+            <SegmentedControlEmptyDemo />
+          </Cell>
+
+          <Cell name="form/date-field" caption="네이티브 date · 요일 리드아웃 · D-day">
+            <DateFieldDemo />
+          </Cell>
+
+          <Cell name="form/code-input" caption="6자리 한 칸 · 58px(AmountInput과 동일)">
+            <CodeInputDemo />
+          </Cell>
+        </div>
+
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           <Cell name="ui/input" caption="h-8 → h-12 (48px) · 16px">
             <div className="flex w-full flex-col gap-2">

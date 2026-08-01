@@ -26,11 +26,14 @@ export default async function BudgetPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const budget = getMockBudget(resolveFixtureKey(params.fixture));
+  const budget = await getMockBudget(resolveFixtureKey(params.fixture));
 
   // 배분 합이 총 예산을 넘은 금액. `unallocated`가 음수로 내려가면
   // "미배분 ₩-380,000 남음"이 되어 읽히지 않는다.
-  const overAllocatedTotal = Math.max(0, -budget.unallocated);
+  //
+  // 총 예산이 **미입력**일 때는 초과 판정 자체를 하지 않는다 — 기준이 없는데 넘었다고 하면
+  // 배분을 정상적으로 해 둔 사람에게 "총 예산보다 ₩26,000,000 많아요"라는 헛경고가 뜬다.
+  const overAllocatedTotal = budget.hasTotalBudget ? Math.max(0, -budget.unallocated) : 0;
   const overSum = budget.overAllocated.reduce((acc, major) => acc + major.overBy, 0);
   const [firstOver] = budget.overAllocated;
 
@@ -61,38 +64,61 @@ export default async function BudgetPage({
         />
       ) : (
         <>
-          <Panel className="gap-2">
-            <span className="text-caption text-muted-foreground">총 가용예산</span>
-            <MoneyText size="display" value={budget.totalBudget} />
-            <ProgressBar
-              color={overAllocatedTotal > 0 ? "var(--warning)" : undefined}
-              label="총 예산 대비 배분 완료 비율"
-              thin
-              total={budget.totalBudget}
-              value={budget.allocatedTotal}
-            />
-            {budget.totalBudget === 0 ? (
+          {/*
+            총 예산이 미입력이면 `₩0`을 display로 띄우지 않는다 — 0원은 사실이 아니라 미입력이고,
+            32px 금액은 이 화면에서 가장 강한 요소라 거짓말이 가장 크게 나간다.
+            같은 이유로 진행률 바도 그리지 않는다(분모 없음). (→ D-052)
+          */}
+          {!budget.hasTotalBudget ? (
+            <Panel className="gap-2" tone="muted">
+              <span className="text-caption text-muted-foreground">총 가용예산</span>
+              <p className="text-title">아직 정하지 않았어요</p>
               <p className="text-body-sm text-muted-foreground">
-                총 가용예산이 아직 0원이에요. 설정에서 먼저 정해 주세요.
+                지금 대분류 배분 합계는{" "}
+                <b className="num font-semibold text-foreground">
+                  {formatWon(budget.allocatedTotal)}
+                </b>
+                . 총 가용예산을 정하면 남은 미배분 금액과 초과 여부가 계산됩니다.
               </p>
-            ) : overAllocatedTotal > 0 ? (
-              <p className="text-body-sm text-warning-strong">
-                배분 합이 총 예산보다{" "}
-                <b className="num font-semibold">{formatWon(overAllocatedTotal)}</b> 많아요
-              </p>
-            ) : budget.unallocated > 0 ? (
-              <p className="text-body-sm text-muted-foreground">
-                미배분 <b className="num font-semibold text-foreground">{formatWon(budget.unallocated)}</b>{" "}
-                남음
-              </p>
-            ) : (
-              <p className="text-body-sm text-muted-foreground">
-                {budget.majors.length}개 대분류에{" "}
-                <b className="num font-semibold text-foreground">{formatWon(budget.allocatedTotal)}</b>{" "}
-                전액 배분 완료
-              </p>
-            )}
-          </Panel>
+              <Button asChild className="mt-1 self-start" size="sm" variant="secondary">
+                <Link href="/settings">설정에서 정하기</Link>
+              </Button>
+            </Panel>
+          ) : (
+            <Panel className="gap-2">
+              <span className="text-caption text-muted-foreground">총 가용예산</span>
+              <MoneyText size="display" value={budget.totalBudget} />
+              <ProgressBar
+                color={overAllocatedTotal > 0 ? "var(--warning)" : undefined}
+                label="총 예산 대비 배분 완료 비율"
+                thin
+                total={budget.totalBudget}
+                value={budget.allocatedTotal}
+              />
+              {overAllocatedTotal > 0 ? (
+                <p className="text-body-sm text-warning-strong">
+                  배분 합이 총 예산보다{" "}
+                  <b className="num font-semibold">{formatWon(overAllocatedTotal)}</b> 많아요
+                </p>
+              ) : budget.unallocated > 0 ? (
+                <p className="text-body-sm text-muted-foreground">
+                  미배분{" "}
+                  <b className="num font-semibold text-foreground">
+                    {formatWon(budget.unallocated)}
+                  </b>{" "}
+                  남음
+                </p>
+              ) : (
+                <p className="text-body-sm text-muted-foreground">
+                  {budget.majors.length}개 대분류에{" "}
+                  <b className="num font-semibold text-foreground">
+                    {formatWon(budget.allocatedTotal)}
+                  </b>{" "}
+                  전액 배분 완료
+                </p>
+              )}
+            </Panel>
+          )}
 
           {/* 시트에는 없던 개선분 — 배분액 대비 세부 예산 합 초과를 실시간으로 경고한다.
               대분류마다 배너를 쌓으면 최대 4장이 첫 화면을 채워 정작 카드가 안 보인다.

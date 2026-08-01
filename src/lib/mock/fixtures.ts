@@ -1,5 +1,5 @@
 /**
- * 시안·퍼블리싱 단계의 목업 데이터.
+ * 시안·퍼블리싱 단계의 목업 데이터 + **실데이터 오버레이**.
  *
  * 화면은 반드시 `getMockHome()` 같은 선택자 함수 하나만 호출한다.
  * P2~P5에서 이 함수들의 본문만 Supabase 쿼리로 바꾸면 화면 코드는 손대지 않는다.
@@ -7,9 +7,24 @@
  * 집계는 전부 원시 배열(budgets / expenses / guests)에서 파생시킨다.
  * 합계를 손으로 적어두면 항목을 하나 고칠 때마다 숫자가 어긋나기 때문이다.
  * 덕분에 `sheet` 세트는 시트 실측치를 자동으로 재현한다.
+ *
+ * ─────────────────────────────────────────────────────────────────
+ * **목업과 실데이터의 경계 — 축은 하나다** (→ D-053)
+ *
+ * | 무엇 | 어디서 오나 | 언제 실데이터가 되나 |
+ * |---|---|---|
+ * | 예식 정보 (이름 · 예식일 · 총 가용예산) | **DB (`couples`)** | 지금(P1) |
+ * | 원장 (예산 · 지출 · 하객 · 저축) | fixture (`?fixture=`) | P2 · P3 · P5 |
+ *
+ * `?fixture=`는 **원장 스위치**다. 세 세트 전부 예식 정보는 DB 값으로 덮인다 —
+ * 로그인한 사람이 어느 세트를 보든 D-day는 자기 예식일이어야 하기 때문이다.
+ * DoD 회귀표(roadmap.md)의 9개 수치는 전부 원장에서 파생되므로 이 오버레이의 영향을 받지 않는다.
+ *
+ * 스페이스가 없거나(로그아웃 · 조회 실패 · Supabase 미연결) 하면 fixture 값이 그대로 남는다.
  */
 
-import { ratio } from "@/lib/format";
+import { ratio, formatDday } from "@/lib/format";
+import { getSpaceContext } from "@/lib/supabase/space";
 import {
   MAJOR_LABEL,
   MAJORS,
@@ -90,9 +105,46 @@ type RawFixture = {
 
 /**
  * D-day를 `new Date()`로 계산하면 정적 프리렌더 시점에 얼어붙어 배포 뒤 값이 어긋난다.
- * 목업 단계에서는 기준일을 고정해 결정적으로 만든다. 실제 데이터가 붙는 P6에서 걷어낸다.
+ * **목업 예식일(2026-11-14)에 대해서만** 기준일을 고정해 결정적으로 만든다. (→ D-013)
+ *
+ * 실제 스페이스가 있으면 예식일이 사용자 것이므로 기준일도 진짜 오늘이어야 한다 —
+ * `referenceDay(true)`가 그 경우를 맡는다. 이 상수는 목업 전용으로 남는다.
  */
 export const MOCK_TODAY = new Date("2026-07-29T00:00:00Z");
+
+const SEOUL_DATE = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * D-day와 "이번 달"의 기준일.
+ *
+ * 실데이터일 때 서버 로컬 시각(Vercel = UTC)을 쓰면 **오전 9시 이전 한국 사용자에게
+ * D-day가 하루 밀린다.** 예식 D-1에 D-2가 뜨는 앱은 신뢰를 잃으므로 Asia/Seoul로 고정한다.
+ *
+ * `Date`는 로컬 필드로 만든다 — `format.ts`의 `daysUntil()`이 `from`을 로컬 게터
+ * (`getFullYear` 등)로 읽기 때문에, 여기서 UTC로 만들면 서버 타임존에 따라 또 밀린다.
+ */
+function referenceDay(isLive: boolean): { year: number; month: number; day: number; date: Date } {
+  if (!isLive) {
+    const year = MOCK_TODAY.getUTCFullYear();
+    const month = MOCK_TODAY.getUTCMonth() + 1;
+    const day = MOCK_TODAY.getUTCDate();
+    return { year, month, day, date: new Date(year, month - 1, day) };
+  }
+
+  const parts = SEOUL_DATE.formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  const year = value("year");
+  const month = value("month");
+  const day = value("day");
+  return { year, month, day, date: new Date(year, month - 1, day) };
+}
 
 /* ───────────────────────  원시 데이터: rich  ─────────────────────── */
 
@@ -387,6 +439,32 @@ function fixture(key: FixtureKey): RawFixture {
   return FIXTURES[key];
 }
 
+/** 예식 정보가 실제 스페이스에서 왔는가. D-day 기준일과 "총예산 미설정" 판정이 여기 걸린다. */
+type ResolvedFixture = RawFixture & { isLive: boolean };
+
+/**
+ * 목업 원장 위에 **예식 정보 3종만** 실데이터를 덮는다.
+ *
+ * 최소보증인원 · 평균 축의금 · 1인 식대는 일부러 덮지 않는다 — 하객 화면의 계산식은
+ * P5 소관이고, 지금 덮으면 목업 명단(207명)과 실제 보증인원이 섞여 DoD 회귀표의
+ * `13명 부족`이 조용히 틀어진다. 원장이 실데이터가 되는 단계에서 같이 넘긴다.
+ */
+async function resolveFixture(key: FixtureKey): Promise<ResolvedFixture> {
+  const base = fixture(key);
+  const context = await getSpaceContext();
+
+  if (context.status !== "ok") return { ...base, isLive: false };
+
+  const { space } = context;
+  return {
+    ...base,
+    coupleName: space.name,
+    weddingDate: space.weddingDate,
+    totalBudget: space.totalBudget,
+    isLive: true,
+  };
+}
+
 /* ───────────────────────────  파생 집계  ─────────────────────────── */
 
 const sum = (values: number[]): number => values.reduce((acc, value) => acc + value, 0);
@@ -457,7 +535,15 @@ function budgetSumByMajor(data: RawFixture): Record<MajorKey, number> {
 export type HomeView = {
   coupleName: string;
   weddingDate: string;
+  /** "D-108" / "D-DAY" / "D+3". 기준일까지 여기서 정해 화면이 오늘을 다시 계산하지 않게 한다. */
+  dday: string | null;
   totalBudget: number;
+  /**
+   * 총 가용예산이 정해졌는가. **`totalBudget === 0`은 "0원"이 아니라 "미입력"이다** —
+   * 온보딩에서 총예산은 선택 입력이라 안 정하고 들어온 사람이 있다. (→ D-052)
+   * 이 값이 false면 소진율·남은 예산은 분모가 없어 계산 자체가 성립하지 않는다.
+   */
+  hasTotalBudget: boolean;
   confirmedSpent: number;
   estimatedSpent: number;
   remaining: number;
@@ -472,13 +558,12 @@ export type HomeView = {
   isEmpty: boolean;
 };
 
-export function getMockHome(key: FixtureKey): HomeView {
-  const data = fixture(key);
+export async function getMockHome(key: FixtureKey): Promise<HomeView> {
+  const data = await resolveFixture(key);
   const confirmed = confirmedTotal(data);
   const estimated = estimatedTotal(data);
 
-  const month = MOCK_TODAY.getUTCMonth() + 1;
-  const year = MOCK_TODAY.getUTCFullYear();
+  const { year, month, date: today } = referenceDay(data.isLive);
   const inThisMonth = data.expenses.filter(
     (expense) => expense.year === year && expense.month === month,
   );
@@ -496,7 +581,9 @@ export function getMockHome(key: FixtureKey): HomeView {
   return {
     coupleName: data.coupleName,
     weddingDate: data.weddingDate,
+    dday: formatDday(data.weddingDate, today),
     totalBudget: data.totalBudget,
+    hasTotalBudget: data.totalBudget > 0,
     confirmedSpent: confirmed,
     estimatedSpent: estimated,
     remaining: data.totalBudget - confirmed,
@@ -544,6 +631,8 @@ export type BudgetMajorView = Major & {
 
 export type BudgetView = {
   totalBudget: number;
+  /** `totalBudget === 0`은 미입력이다. 배분 초과 판정의 전제 조건. (→ D-052) */
+  hasTotalBudget: boolean;
   allocatedTotal: number;
   unallocated: number;
   majors: BudgetMajorView[];
@@ -551,8 +640,11 @@ export type BudgetView = {
   isEmpty: boolean;
 };
 
-export function getMockBudget(key: FixtureKey): BudgetView {
-  const data = fixture(key);
+/**
+ * 결산 화면도 같은 대분류 집계를 쓴다. 예식 정보 오버레이가 필요 없는 쪽(결산)이
+ * `await`를 뒤집어쓰지 않도록 순수 함수로 떼어 둔다.
+ */
+function buildBudgetView(data: RawFixture): BudgetView {
   const spentMinor = spentByMinor(data);
   const spentMajor = spentByMajor(data);
   const budgetSums = budgetSumByMajor(data);
@@ -593,12 +685,17 @@ export function getMockBudget(key: FixtureKey): BudgetView {
 
   return {
     totalBudget: data.totalBudget,
+    hasTotalBudget: data.totalBudget > 0,
     allocatedTotal,
     unallocated: data.totalBudget - allocatedTotal,
     majors,
     overAllocated: majors.filter((major) => major.overBy > 0),
     isEmpty: data.budgets.length === 0,
   };
+}
+
+export async function getMockBudget(key: FixtureKey): Promise<BudgetView> {
+  return buildBudgetView(await resolveFixture(key));
 }
 
 /* ────────────────────────────  지출  ─────────────────────────────── */
@@ -701,9 +798,13 @@ export type ReportView = {
   isEmpty: boolean;
 };
 
+/**
+ * 결산은 예식 정보를 하나도 쓰지 않는다(대분류 배분·지출·정산뿐).
+ * 그래서 오버레이를 타지 않고 목업 원장만으로 동기 계산한다 — P4에서 통째로 갈아끼운다.
+ */
 export function getMockReport(key: FixtureKey): ReportView {
   const data = fixture(key);
-  const budget = getMockBudget(key);
+  const budget = buildBudgetView(data);
   const confirmed = data.expenses.filter(isConfirmed);
 
   const groomDirect = sum(confirmed.filter((e) => e.payer === "groom").map((e) => e.amount));

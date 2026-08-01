@@ -21,7 +21,7 @@ import { Screen } from "@/components/layout/screen";
 import { Button } from "@/components/ui/button";
 import { SIDE_LABEL, type Side } from "@/lib/domain";
 import { formatDday } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
+import { getSpaceContext } from "@/lib/supabase/space";
 
 /** 예식일 표기. 홈 헤더와 같은 규칙을 쓴다 — "2026년 11월 14일 (토)". */
 const weddingDateFormat = new Intl.DateTimeFormat("ko-KR", { dateStyle: "long", timeZone: "UTC" });
@@ -49,34 +49,25 @@ function MenuIcon({ icon: Icon }: { icon: LucideIcon }) {
 }
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 판정은 `getSpaceContext()` 하나만 쓴다 — 레이아웃 가드와 다른 쿼리를 쓰면
+  // "레이아웃은 있다고 보고 이 화면은 없다고 보는" 어긋남이 생긴다. `cache()`로 감싸여
+  // 있어 레이아웃이 이미 부른 요청에서는 왕복이 더 일어나지 않는다.
+  const context = await getSpaceContext();
 
-  // 커플 스페이스는 P1 스코프라 실제 테이블을 읽는다(RLS가 내 스페이스로 이미 좁힌다).
-  // 예산·지출은 여전히 목업이므로 이 화면의 예식일과 홈의 예식일이 다를 수 있다.
-  const [coupleResult, memberResult] = await Promise.all([
-    supabase.from("couples").select("name, wedding_date").maybeSingle(),
-    supabase.from("couple_members").select("side, display_name, user_id"),
-  ]);
-
-  const couple = coupleResult.data;
-  const spaceFailed = Boolean(coupleResult.error);
-  const membersFailed = Boolean(memberResult.error);
+  // 레이아웃 가드가 `none`(→ 온보딩) · `anonymous`(→ 로그인)를 이미 걸러낸다.
+  // 여기 남는 갈래는 `ok`와 `unavailable`(조회 실패 · Supabase 미연결)뿐이다.
+  const user = context.status === "anonymous" ? null : context.user;
+  const space = context.status === "ok" ? context.space : null;
+  const spaceFailed = context.status === "unavailable" && context.reason === "error";
+  const membersFailed = space?.membersUnavailable ?? false;
 
   const memberBySide = new Map<Side, { name: string; isMe: boolean }>();
-  for (const member of memberResult.data ?? []) {
-    if (member.side === "groom" || member.side === "bride") {
-      memberBySide.set(member.side, {
-        name: member.display_name,
-        isMe: member.user_id === user?.id,
-      });
-    }
+  for (const member of space?.members ?? []) {
+    memberBySide.set(member.side, { name: member.displayName, isMe: member.isMe });
   }
 
-  const weddingDay = couple ? new Date(`${couple.wedding_date}T00:00:00Z`) : null;
-  const dday = couple ? formatDday(couple.wedding_date) : null;
+  const weddingDay = space ? new Date(`${space.weddingDate}T00:00:00Z`) : null;
+  const dday = space ? formatDday(space.weddingDate) : null;
 
   return (
     <Screen header={<AppHeader title="설정" action={null} />}>
@@ -88,11 +79,11 @@ export default async function SettingsPage() {
       */}
       {spaceFailed ? (
         <InlineError message="스페이스 정보를 불러오지 못했어요. 화면을 새로고침하면 다시 시도합니다." />
-      ) : couple && weddingDay ? (
+      ) : space && weddingDay ? (
         <Panel>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-body font-semibold">{couple.name}</p>
+              <p className="truncate text-body font-semibold">{space.name}</p>
               <p className="num truncate text-body-sm text-muted-foreground">
                 예식 {weddingDateFormat.format(weddingDay)} ({weekdayFormat.format(weddingDay)})
               </p>

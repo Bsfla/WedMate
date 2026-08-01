@@ -5,10 +5,12 @@
 
 ## 현재 지점
 
-**2026-07-31 — P1-1 스키마·RLS 완료.** 마이그레이션 7개가 로컬 Postgres에서 적용되고
-**DoD 실측치 8개가 전부 View에서 그대로 재현된다.**
+**2026-07-31 — P1-2까지 완료 + 디자인 2차 + Vercel 배포.**
+마이그레이션 7개가 원격에 적용돼 **DoD 실측치 8개가 전부 View에서 재현되고**,
+6화면이 프로덕트 품질로 다시 그려져 GitHub(`Bsfla/WedMate`) → Vercel로 배포됐다.
 
-5탭 + `/design`이 목업 데이터로 실제 렌더되며 lint/build 통과, 7개 라우트 × 3개 fixture 전부 200.
+5탭 + `/design`이 목업 데이터로 실제 렌더되며 lint/build 무경고,
+**6화면 × 3 fixture × 라이트·다크 72장을 375×812로 촬영해 육안 확인**(가로 스크롤 0건, 콘솔 에러 0건).
 
 - ✅ **Supabase 연결** — `.env.local`에 URL/publishable key/project ref를 채웠다.
   `isSupabaseConfigured`가 true가 되어 `proxy.ts`가 세션 갱신을 수행한다. (프로젝트 ref `knhqinlfoadvndlkraii`)
@@ -24,10 +26,29 @@
       `icon.svg` + `apple-icon`(180) + `mark-{192,512}.png` 전부 **빌드 시점 프리렌더** 확인.
       스톡 Next 파비콘 제거. `design` 서브에이전트 신설(`.claude/agents/design.md`)
 - ✅ **로그인 화면 재구성** — 브랜드 로크업, `auth-wash`, 폼 에러 2계층 분리
-- ⬜ 다음: **P1-3 온보딩** — `/onboarding`(새로 만들기 / 초대 코드) ·
-      `/onboarding/wedding`(예식일 · 총예산) → `create_couple()` 호출.
-      여기서 `(app)/layout.tsx`의 스페이스 가드도 같이 붙는다
-      (🔴 그 전에 대시보드에서 `Confirm email`을 꺼야 한다 — 아래 선행 조건)
+- ✅ **디자인 2차 — 공용 레이어** (2026-07-31, → D-039~D-044, D-048)
+      세로 리듬 단일화(`Screen` 16px + `SectionHeader` 자체 20/8) · `DataRow`/`DataRowGroup` ·
+      `ErrorState`/`InlineError` · `skeletons` 7종 · `Chip` · `Panel tone` · `ListRow href` ·
+      `EmptyState`/`WarningBanner` `action` · 다크 elevation 토큰 ·
+      `(app)/loading.tsx`·`error.tsx`(에러 경계를 그룹에 둬 하단 탭 생존)
+- ✅ **🔴 `cn()`이 타입 스케일을 삼키던 버그** (→ D-044) — tailwind-merge가 미등록 `text-*`를
+      색 클래스로 오인해 8곳에서 글자 크기가 사라지고 있었다(`WarningBanner` 13→15px,
+      `StageBadge` 12→15px 등). "화면마다 크기가 반칸씩 다르다"의 진짜 원인
+- ✅ **디자인 2차 — 6화면** (2026-07-31, → D-045~D-051)
+      홈(잔액을 히어로 안으로) · 예산(초과 카드 승격, 전부 접고 배너가 펼침) ·
+      지출(`Chip` 통일, 시트를 `Field`/`Checkbox` 규격으로) · 하객(결론을 명단 위로) ·
+      결산(목차 순서 → 결론 먼저) · 설정(스페이스 정보를 위로)
+      부수적으로 실버그 3건 수정 — 필터 후 월 합계 `total` 미재계산, 예산 미배분 음수 문구,
+      `button` 안 `progressbar` 중첩
+- ✅ **배포** (2026-07-31) — GitHub `Bsfla/WedMate` → Vercel. 환경변수 2종은 대시보드 관리
+- ✅ **P1-3 온보딩** (2026-08-01, → D-052~D-057) — `/onboarding`(새로 만들기 / 초대 코드) ·
+      `/onboarding/wedding`(예식일 · 총예산) → `create_couple()` · `redeem_invite()`.
+      `(app)/layout.tsx` 스페이스 가드 + `lib/supabase/space.ts`(판정 단일 출처, `cache()` 1왕복).
+      폼 조립 3종(`text-field` `date-field` `code-input`) · `auth-shell` · `app/error.tsx` 신설.
+      **가입 후 스페이스 없이 목업 홈에 떨어지던 구멍이 막혔다.** lint/build 무경고 · 라우트 17개
+- ⬜ 다음: **P1-4 설정 CRUD** — `/settings/{wedding,invite,categories,payment-methods,savings}`.
+      🔴 지금 가장 아픈 곳은 **초대 화면 부재**다 — `create_invite()` RPC는 있는데 코드를 발급할
+      UI가 없어서, 실제로는 2인 스페이스를 만들 수 없다 (온보딩의 "코드로 참여"가 갈 곳이 없다)
 
 ## 단계
 
@@ -35,7 +56,7 @@
 |---|---|---|---|
 | **P0 셋업** | ✅ 완료 | Next.js + TS + Tailwind + shadcn 초기화, Supabase 스캐폴드, PWA manifest, 하단탭 셸 | 빈 5탭이 모바일에서 이동됨 |
 | **PD 디자인** | ✅ 완료 | 토큰·타입 스케일·44px 밀도 확정, 컴포넌트 16종, 목업 fixtures, 5탭 + `/design` 퍼블리싱 | 시안이 곧 P2~P6의 뼈대 |
-| **P1 인증/스페이스** | ⬜ 다음 | 로그인, `couples`/`couple_members`/`couple_invites`, RLS, **카테고리 트리 시드**, 설정 화면 CRUD | 커플 2인이 같은 스페이스 진입 (→ 아래 상세) |
+| **P1 인증/스페이스** | 🚧 진행 중 | ~~로그인~~ ✅, ~~`couples`/`couple_members`/`couple_invites`, RLS~~ ✅, ~~온보딩~~ ✅, ~~카테고리 트리 시드~~ ✅(`seed_couple_defaults`), **설정 화면 CRUD** ⬜ | 커플 2인이 같은 스페이스 진입 (→ 아래 상세) |
 | **P2 예산** | ⬜ | 총 가용예산, 대분류 배분, 소분류 예산 편집(업체·링크·메모), 배분 초과 경고 | 시트 `1.예산` 대체 |
 | **P3 지출** | ⬜ | 빠른입력 바텀시트 저장, 원장 필터/수정/삭제, 스와이프, 예상 지출 플래그, 잔금 단계 | 시트 `2.지출` 대체 |
 | **P4 결산** | ⬜ | 집계 View/RPC, 소진율·소분류 테이블·분담 정산·월별 타임라인 | 시트 `3.결산` 대체 |
@@ -83,28 +104,37 @@
 - [x] `proxy.ts` — 미인증은 `/login`. `/login` `/auth` `/design`만 공개 (→ D-034)
 - [x] 로그아웃 — `/settings`에 배치. 2계정 테스트에 필요하다
 - [x] `components/form/field.tsx` — 라벨·도움말·에러 규격 (→ D-032)
-- [ ] 스페이스 유무로 `/onboarding` 분기 — **P1-3에서 `/onboarding`과 함께** (→ D-034)
+- [x] 스페이스 유무로 `/onboarding` 분기 — `(app)/layout.tsx` + `lib/supabase/space.ts` (→ D-034)
+      `none`만 온보딩으로 보낸다. `unavailable`(조회 실패)을 보내면 DB가 흔들릴 때
+      멀쩡한 스페이스를 가진 사람이 온보딩에 갇힌다
 - ~~`/auth/callback`~~ — 비밀번호 방식에는 불필요. 카카오 OAuth를 붙일 때 만든다
 
-**3. 온보딩**
-- [ ] `/onboarding` — 새로 만들기 / 초대 코드로 참여
-- [ ] `/onboarding/wedding` — 예식일 · 총 가용예산 (나머지 3개는 기본값)
+**3. 온보딩** — ✅ 완료 (2026-08-01, → D-052~D-057)
+- [x] `/onboarding` — 새로 만들기 / 초대 코드로 참여. 1→2단계는 쿼리 파라미터로 (→ D-056)
+- [x] `/onboarding/wedding` — 예식일 · 총 가용예산 (나머지 3개는 기본값)
+- [x] RPC 에러 분기 — **SQLSTATE로 나누지 않는다.** `ALREADY_IN_COUPLE`/`COUPLE_FULL`이 둘 다
+      `23505`, `INVALID_*` 계열이 전부 `22023`이라 메시지 토큰으로만 구분된다
+- [x] 오참여 경고 — `leave_couple()`이 없어 복구 불가라 참여 직후 확인 화면으로 보낸다 (→ D-057)
 
 **4. 설정 CRUD**
 - [x] **shadcn 프리미티브 7종 수령 + 48px/16px 규격화** (2026-07-31, → D-031·D-032)
       `input` `label` `select` `checkbox` `switch` `separator` `skeleton`.
       `/design`의 **06 / FORM** 절에서 실물 확인. `badge`는 받지 않았다(사유는 design-system.md 4절)
-- [ ] 폼 조립 컴포넌트 — `form/{field,text-field,date-field,code-input}`
+- [x] 폼 조립 컴포넌트 — `form/{field,form-alert,text-field,date-field,code-input}` (2026-08-01)
+      서버 응답으로 입력을 비울 때는 `key` 리마운트 (→ D-055)
 - [ ] `/settings/wedding` — 예식 정보 5개 필드
 - [ ] `/settings/invite` — 코드 발급 · 복사 · 공유 · 멤버 목록
 - [ ] `/settings/categories` — 3단 트리, 추가/이름변경/순서변경/보관
 - [ ] `/settings/payment-methods` — 활성화 토글 + 라벨 편집
 - [ ] `/settings/savings` — 저축 목표 (P1 중 가장 후순위)
 
-**5. 목업 → 실데이터 전환**
-- [ ] `fixtures.ts`의 예식 정보·카테고리·결제수단을 Supabase 쿼리로 교체
+**5. 목업 → 실데이터 전환** — 🚧 부분 완료. 경계는 **화면 단위 하나**다 (→ D-053)
+- [x] `/settings` — `getSpaceContext()`로 실데이터. 예식일·총예산·멤버가 DB에서 온다
+- [ ] `/` 홈 — 아직 `getMockHome()`. D-day가 **내가 넣은 예식일이 아니라 목업 날짜**로 뜬다
+      🔴 P1 완료 판정 1번이 여기 걸려 있다
+- [ ] `fixtures.ts`의 카테고리·결제수단을 Supabase 쿼리로 교체
       (예산·지출·하객은 P2·P3·P5까지 목업 유지)
-- [ ] `MOCK_TODAY` 제거 검토 — D-day를 실제 예식일로 계산 (→ D-013)
+- [ ] `MOCK_TODAY` 제거 검토 — `/report`가 아직 쓴다 (→ D-013)
 
 ### P1 완료 판정
 

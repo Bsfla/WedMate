@@ -3,17 +3,31 @@
 import { formatNumber, parseAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const QUICK_STEPS = [
-  { label: "+1만", amount: 10_000 },
-  { label: "+10만", amount: 100_000 },
-  { label: "+100만", amount: 1_000_000 },
-] as const;
+/**
+ * 퀵버튼 프리셋. 자릿수가 두 단위나 다른 두 종류의 금액이 이 컴포넌트를 공유한다 —
+ * 지출 한 건(수십만 원)과 총 가용예산·저축 목표(수천만 원)다.
+ * `expense` 프리셋으로 2,600만 원을 채우려면 +100만을 26번 눌러야 한다.
+ */
+const STEP_PRESETS = {
+  expense: [
+    { label: "+1만", amount: 10_000 },
+    { label: "+10만", amount: 100_000 },
+    { label: "+100만", amount: 1_000_000 },
+  ],
+  budget: [
+    { label: "+100만", amount: 1_000_000 },
+    { label: "+500만", amount: 5_000_000 },
+    { label: "+1,000만", amount: 10_000_000 },
+  ],
+} as const;
 
 type AmountInputProps = {
   value: number;
   onChange: (value: number) => void;
   label: string;
   autoFocus?: boolean;
+  /** 퀵버튼 단위. 총예산·저축 목표처럼 자릿수가 큰 자리에 `budget`을 쓴다. */
+  steps?: keyof typeof STEP_PRESETS;
   className?: string;
   /**
    * 아래 셋은 `Field`가 넘겨 주는 것을 **안쪽 `<input>`까지** 내리기 위한 통로다.
@@ -37,6 +51,7 @@ export function AmountInput({
   onChange,
   label,
   autoFocus = false,
+  steps = "expense",
   className,
   id,
   describedBy,
@@ -70,7 +85,7 @@ export function AmountInput({
       </div>
 
       <div className="flex gap-1.5">
-        {QUICK_STEPS.map((step) => (
+        {STEP_PRESETS[steps].map((step) => (
           <button
             key={step.label}
             type="button"
