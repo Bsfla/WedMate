@@ -349,6 +349,10 @@ PD에서 만든 5탭은 전부 **읽기 화면**이라 폼 규격이 없다. P1�
 
 `/login`, `/onboarding/*`은 하단 탭이 **없다**. 아직 스페이스가 없어 갈 곳이 없기 때문이다.
 
+셸의 실체는 **`components/layout/auth-shell.tsx` 하나다.** `(auth)/layout.tsx`와
+`onboarding/layout.tsx`가 같은 컴포넌트를 쓴다 — `isolate` + `-z-10` + `inset-x-0` + `sm:border-x`의
+상호작용이 미묘해서 복사하면 반드시 한쪽이 어긋난다. 하단 슬롯(`footer`)은 `mt-auto`로 바닥에 붙는다.
+
 - 컨테이너는 동일하게 `max-w-[480px]` 중앙 정렬, 좌우 패딩 24px(탭 화면의 16px보다 넓게 — 폼 한 벌만 놓이므로)
 - 세로 중앙 정렬이 아니라 **상단에서 시작**한다. 키보드가 올라올 때 필드가 가려지지 않게.
 - 하단 CTA는 `Button size="lg"`(48px) 전폭 고정, `pb-[max(1.5rem,env(safe-area-inset-bottom))]`
@@ -373,15 +377,175 @@ PD에서 만든 5탭은 전부 **읽기 화면**이라 폼 규격이 없다. P1�
 `"초대 코드를 찾을 수 없어요. 6자리를 다시 확인해 주세요."`
 
 **금액 입력은 `AmountInput`을 그대로 쓴다** — 총 가용예산·저축 목표·축의금 전부. 새로 만들지 않는다.
+퀵버튼 단위만 `steps`로 가른다: `expense`(기본, +1만/+10만/+100만) · `budget`(+100만/+500만/+1,000만).
+`expense`로 2,600만 원을 채우려면 +100만을 26번 눌러야 한다.
 
-### 설정 하위 화면 패턴
+### 히어로 입력 — 58px 단일 규격
+
+화면당 **하나뿐인** 주인공 입력의 높이는 58px로 통일한다(`min-h-[58px]`). 지금은 두 개다.
+
+| 컴포넌트 | 쓰는 화면 | 글자 |
+|---|---|---|
+| `money/amount-input` | 빠른입력 · 온보딩 총예산 | 26px 볼드 · `.num` |
+| `form/code-input` | 온보딩 코드 입력 | `text-display`(32) · `.num` · 자간 0.28em |
+
+둘 다 테두리 `border-primary` + `ring-3 ring-primary-soft`를 **항상** 켜 둔다 — 포커스 여부가 아니라
+"이 화면에서 칠 곳은 여기"를 말하는 표식이다. 일반 필드(48px)와 높이로 위계가 갈린다.
+`Field`와 붙일 때는 `id`·`describedBy`·`invalid` 세 통로로 접근성 속성을 **안쪽 `<input>`까지** 내린다
+(래퍼가 들고 있으면 포커스가 input에 있을 때 에러가 낭독되지 않는다).
+
+### 코드 입력 — 분할 6칸을 쓰지 않는다
+
+주 경로가 **카카오톡에서 받은 코드 붙여넣기**다. 분할 칸은 붙여넣기 분배·백스페이스 역이동·중간 글자
+정정·IME·스크린리더 낭독을 전부 직접 구현해야 하고 정확히 거기서 깨진다. 한 칸이면 브라우저가 해 준다.
+"6칸이 보여서 6자리인 줄 안다"는 자간 + 라벨로 대신한다.
+
+- **정규화는 관대하게, 검증은 제출 때.** `toUpperCase()` + **공백·하이픈만** 제거 + 6자 자르기.
+  알파벳 밖 문자를 지우지 않는다 — 방금 친 글자가 화면에 안 나타나면 오타가 아니라 **입력창 고장**으로 읽힌다.
+  제출 시 `^[2-9A-HJ-NP-Z]{6}$`(DB CHECK와 같은 식)로 보고 **가르치는 문구**를 준다:
+  `"코드는 숫자와 영문 6자리예요. 0 · O · 1 · I는 쓰이지 않으니 다시 확인해 주세요."`
+- `maxLength`를 걸지 않는다. 걸면 브라우저가 **붙여넣기를 먼저 자른다** — `"BK7-QX2"`가 6자로 잘린 뒤
+  하이픈이 빠져 5자가 된다. 길이는 하이픈·공백을 지운 **뒤에** 자른다.
+- `autoComplete="one-time-code"`를 쓰지 않는다. SMS 자동완성을 부르는데 코드는 카톡으로 온다.
+  `autoCapitalize="characters"` · `autoCorrect="off"` · `spellCheck={false}` · `inputMode="text"`.
+- 모노스페이스를 쓰지 않는다. 알파벳에 `0 O 1 I`가 없어 혼동 글리프 문제가 애초에 없다.
+- 클립보드 읽기 버튼을 두지 않는다 — iOS 권한 프롬프트 + 브라우저 지원 편차. 롱프레스 붙여넣기로 충분하다.
+- 자간은 마지막 글자 **뒤에도** 붙어 `text-center`를 왼쪽으로 민다. 같은 값을 `padding-left`로 되돌린다.
+
+### 날짜 필드 — 막지 말고 다시 읽어 준다
+
+네이티브 `input[type=date]` + `Input` 규격(h-12 · 16px). **`min`/`max`로 막지 않는다** —
+"아직 안 정했지만 대충 내년 봄"도, "이미 치르고 정산 중"도 정상 사용이다.
+
+- 값이 들어오면 필드 아래에 리드아웃: **`2027년 3월 20일 토요일 · D-232`**
+  (`text-body-sm text-muted-foreground` + `.num`). **요일이 핵심이다** — 예식일 오타는 자릿수가 아니라
+  요일에서 잡힌다. `Field`의 help 슬롯에 태워 `aria-describedby`로 낭독되게 한다.
+- 지난 날짜는 같은 자리에서 `text-warning-strong`으로 `지난 날짜예요 · D+12`. **제출은 막지 않는다.**
+  (`--warning`은 흰 배경 3.18:1로 텍스트 대비 미달 → 반드시 `-strong`. D-007)
+- D-day는 **하이드레이션 뒤에** 붙인다. 서버(UTC)와 브라우저(KST)의 "오늘"이 갈리면 텍스트가 어긋난다.
+  날짜 문자열 자체는 시간대와 무관하므로 첫 페인트부터 보인다.
+- iOS Safari는 값을 `::-webkit-date-and-time-value` 안에 그리고 그 의사요소가 가운데 정렬 + 행높이 0이라
+  값이 위로 몰린다. `text-left` + `min-h-[1.5em]` + `leading-[1.5]`로 되돌린다.
+
+### 미선택 세그먼트 — 기본값을 정할 근거가 없을 때
+
+`SegmentedControl`의 `value`는 `T | null`이다. 온보딩의 역할(예랑/예신)처럼 **필수인데 기본값의 근거가
+없는** 자리는 `null`로 시작한다. 미리 하나를 켜 두면 그냥 넘기는 사람의 절반이 잘못 배정된다.
+
+- 미선택은 **색으로 말하지 않는다** — 알약(`bg-card shadow-raised`)이 없다는 사실이 곧 신호다(D-006).
+- 제출 시 미선택이면 `invalid`로 컨테이너에 `ring-3 ring-destructive/20`(다크 `/40`)을 얹고
+  `Field`의 에러 문구로 무엇을 해야 하는지 쓴다.
+- `Field` 안에 넣을 때 `id`·`describedBy`를 **반드시 내려보낸다.** 컨테이너가 `div`(radiogroup)라
+  보이는 라벨의 `for`로 포커스가 옮겨가지는 않지만, 에러가 그룹에 붙고 `aria-invalid`가 선다.
+  그룹 이름은 `aria-label`이 따로 준다.
+
+### `Field` 안에 프리미티브가 아닌 컨트롤을 넣을 때 — 3구 규약
+
+`AmountInput` · `CodeInput` · `SegmentedControl` · `DateField` **네 곳에서 같은 모양이 반복된다.**
+`Field`의 렌더 프롭이 주는 것을 **컨트롤이 직접 받아 안쪽 요소까지 내려보내야** 한다.
+
+```tsx
+<Field error={...} id="quick-amount" label="금액">
+  {(control) => (
+    <AmountInput
+      id={control.id}
+      describedBy={control["aria-describedby"]}
+      invalid={Boolean(error)}
+    />
+  )}
+</Field>
+```
+
+**래퍼가 대신 들면 안 된다.** `aria-describedby`는 **포커스된 요소의 것만 낭독된다** — 바깥
+`div[role=group]`이 들고 있으면 포커스가 안쪽 `input`에 있을 때 에러 문구가 읽히지 않는다.
+실제로 빠른입력 시트의 금액·결제자·수단·단계 네 필드가 이 방식으로 끊겨 있었다.
+
+### 온보딩 폼의 실패 상태 — 2슬롯
+
+폼 상태는 **알림(`alert`)** 과 **필드 귀속(`field` + `fieldMessage`)** 두 슬롯을 갖는다. 둘 중 하나만 찬다.
+
+| 무엇을 고쳐야 하나 | 어디에 |
+|---|---|
+| 특정 입력의 값 | 그 `Field`의 `error` + 그 컨트롤로 포커스 + `.select()` |
+| 입력이 아닌 것 (이미 참여함 · 스페이스가 꽉 참) | `FormAlert` + 포커스, 필요하면 **[홈으로 가기]** 같은 다음 행동 |
+
+`aria-live`를 쓰지 않는다(→ D-037). 포커스가 옮겨갈 때 `aria-describedby`가 낭독되므로 중복이다.
+**계정 존재 여부가 새어 나갈 수 있는 실패는 필드에 붙이지 않는다** — 어느 쪽이 틀렸는지 모를 때는 알림이다.
+
+### 인증·온보딩 셸의 푸터 슬롯
+
+`AuthShell`은 `children` 외에 **`footer`**를 받는다. 온보딩에는 하단 탭이 없어 **잘못 들어온 사람이
+나갈 길이 화면 안에 있어야 한다.**
+
+```
+Separator · pt-8 · 이메일(text-caption text-muted-foreground) · Button variant="ghost" size="sm"
+```
+
+`mt-auto`로 바닥에 붙고 본문이 길면 뒤를 따라온다. `footer`를 넘기지 않으면 DOM에서 완전히
+사라지므로 `/login`은 이전과 **1px도 다르지 않다.**
+
+### 설정 하위 화면 패턴 — ✅ `/settings/invite`가 선례다 (→ D-063)
 
 설정 홈의 각 항목은 `/settings/*`로 들어간다. 하위 화면은 공통으로:
 
-- 헤더 좌측에 **뒤로가기**(44px), 제목은 항목 이름. `AppHeader`에 `back` prop을 추가한다.
+- **`<AppHeader back="/settings" action={null} title="…" />`**. 좌측 뒤로가기 44px,
+  **우측은 반드시 비운다** — 기본 액션(설정 아이콘)은 지금 있는 곳으로 가는 링크라 무의미하다.
+  `back`은 history가 아니라 **경로**를 받는다. 딥링크로 바로 들어온 사람에게도 올라갈 곳이 필요하고
+  `router.back()`은 그 경우 앱 밖으로 나간다.
+- 하단 탭이 있어도 뒤로가기를 빼지 않는다 — iOS PWA에는 하드웨어 뒤로가기가 없다.
 - 하단 탭은 **유지**한다(설정도 탭 셸 안이다). 온보딩과 구분되는 지점.
 - 저장은 **자동 저장**을 기본으로 한다. 명시적 저장 버튼은 온보딩과 바텀시트에만 둔다 —
   설정은 한 항목씩 고치는 화면이라 매번 저장을 누르게 하면 번거롭다.
+  **다만 폼이 아니라 액션 화면(발급·내보내기·삭제)은 명시적 버튼이다** — 자동 저장할 값이 없다.
+- 라우트마다 **자기 `loading.tsx`**를 둔다. 부모(`settings/loading.tsx`)를 물려받으면
+  설정 홈의 골격(스페이스 카드 + 메뉴 5행)이 잠깐 떴다가 통째로 갈린다.
+  `HeaderSkeleton`에 **`back` 을 켜는 것을 빠뜨리지 않는다** — 빼면 제목이 44px 튄다.
+
+### 되돌리기 어려운 동작 — `layout/confirm-sheet.tsx`
+
+확인이 필요한 자리가 넷이다(코드 재발급 · 상대 내보내기 · 스페이스 나가기 · 삭제).
+`window.confirm`을 쓰지 않는 이유는 스타일이 아니라 **문구다** — 무엇을 잃는지 두 문장으로
+설명할 자리가 없다.
+
+| 규칙 | 왜 |
+|---|---|
+| **잃는 것을 구체적으로 쓴다** | "정말 하시겠습니까?"는 확인이 아니라 소음이다. 죽을 코드는 시트 본문에 문자로 박는다 |
+| **제출 중에는 닫히지 않는다** | ESC·바깥 탭·취소 전부 막는다. 왕복 중에 시트가 사라지면 취소된 줄 안다 |
+| `acknowledge` 게이트는 **삭제에만** | 되돌릴 수 없는 것에만 체크박스를 건다. 남발하면 체크가 습관이 되어 아무것도 막지 못한다 |
+| 확인 버튼은 `variant="default"` | `destructive`(로즈 10% 틴트 위 로즈 글자)는 16px 본문 대비가 AA 경계다. 위험 신호는 색이 아니라 게이트·아이콘·문구가 진다 |
+
+**확인 비용은 잃을 것이 있을 때만 낸다.** 초대 코드 *최초* 발급에는 확인이 없고 *재발급*에만 있다.
+
+### 값 하나를 크게 보여주고 복사시키는 자리 — `data/copy-field.tsx`
+
+**폴백의 본체는 버튼이 아니라 값이다** (→ D-062). `navigator.clipboard`·`navigator.share`는
+비-HTTPS·데스크톱·권한 거부에서 통째로 없거나 예외를 던진다.
+
+- 값은 타입 스케일 최대치 `text-display`(32px) + `.num` + `select-all`. 전부 실패해도
+  사람이 읽거나 한 번 눌러 선택해 옮길 수 있다.
+- 공유는 **지원될 때만** 렌더한다. 미지원이면 복사가 전폭이 되는데 둘 다 `size="lg"` 한 줄이라
+  **세로 높이가 변하지 않는다** — 하이드레이션 뒤 버튼이 생겨도 점프가 없다.
+- 능력 감지에 `useEffect` + `setState`를 쓰지 않는다(이 저장소는 `set-state-in-effect`가 error).
+  `useSyncExternalStore`가 서버 스냅샷(false)과 클라이언트 스냅샷을 나눠 준다.
+- `navigator.share`의 `AbortError`(사용자가 시트를 닫음)는 **실패가 아니다.** 문구를 띄우지 않는다.
+- 값 블록은 `bg-primary-soft` + `border-primary/25`이고 담는 패널은 `tone="default"`다.
+  반대로 하면 `#fff1f3` 위 `#ffffff`(다크 `#2a1319` 위 `#1a181b`)가 되어 면 대비가 사라진다.
+
+### `"use client"`가 문구 모듈을 통해 서버 모듈을 끌고 온다 🔴
+
+`app/**/types.ts`(문구·상태 타입)는 **클라이언트 컴포넌트가 import한다.** 그 파일이
+`lib/supabase/*`에서 상수 하나만 가져와도 `next/headers`까지 딸려 들어와 빌드가 깨진다:
+
+```
+invite-block.tsx (client) → settings/invite/types.ts → lib/supabase/invite.ts → ./server → next/headers  ✗
+```
+
+→ 상수는 문구 모듈에 다시 적되 **원본의 리터럴 타입에 묶는다.** 타입 위치의 `import(...)`는
+런타임에 남지 않고, 한쪽만 바뀌면 컴파일이 실패한다.
+
+```ts
+const INVITE_TTL_HOURS: typeof import("@/lib/supabase/invite").INVITE_TTL_HOURS = 48;
+```
 
 ### 카테고리 트리 표현
 
@@ -396,15 +560,21 @@ PD에서 만든 5탭은 전부 **읽기 화면**이라 폼 규격이 없다. P1�
 
 ```
 components/form/
-  field.tsx            라벨 + 입력 + 도움말/에러 (위 규격)
-  text-field.tsx       한 줄 텍스트
-  date-field.tsx       날짜 (예식일)
-  code-input.tsx       6자리 초대 코드 — 자간 넓힌 대문자, 자동 대문자 변환
+  field.tsx            ✅ 라벨 + 입력 + 도움말/에러 (위 규격)
+  text-field.tsx       ✅ 한 줄 텍스트 = Field + Input
+  date-field.tsx       ✅ 날짜 (예식일) — 요일 리드아웃 + D-day
+  code-input.tsx       ✅ 6자리 초대 코드 — 한 칸 · 58px · 자간 0.28em
 components/layout/
-  back-header.tsx      AppHeader에 back prop 추가로 갈음할지 검토
+  auth-shell.tsx       ✅ (auth)·onboarding 공용 셸 — 웨시 + 24px 패딩 + 하단 슬롯
+  back-header.tsx      ✅ 별도로 만들지 않았다 — AppHeader의 `back` prop으로 갈음
+  confirm-sheet.tsx    ✅ 되돌리기 어려운 동작 확인 — BottomSheet + 폼 + (선택) 게이트 체크박스
 components/data/
-  copy-field.tsx       초대 코드 표시 + 복사/공유 버튼
+  copy-field.tsx       ✅ 초대 코드 표시 + 복사/공유 버튼 + 폴백
 ```
+
+`form/*`가 갖는 것은 **의미론**(라벨 규격 · 도움말 · 에러 · `aria-describedby` 연결)이고,
+`ui/*`가 갖는 것은 **밀도**뿐이다(D-032). 화면이 `Field` + `Input`을 손으로 조립하지 않게
+`TextField`를 둔 이유가 그것이다 — 반복되면 어느 화면에선가 `aria-describedby`를 빠뜨린다.
 
 ### shadcn 프리미티브 — ✅ 수령·규격화 완료 (2026-07-31)
 
@@ -433,7 +603,9 @@ nova 프리셋의 데스크톱 밀도를 48px/16px로 손봤고, 각 파일 상�
 shadcn 기본 `aria-invalid:border-destructive`가 위 폼 필드 규격의 "테두리 `border-primary`"와
 이미 같은 결과를 낸다.
 
-실물은 [`/design` 06 / FORM](http://localhost:3000/design) 절에 있다.
+실물은 [`/design` 07 / FORM](http://localhost:3000/design) 절에 있다 —
+조립 컴포넌트(`TextField` · `DateField` · `CodeInput` · 미선택 `SegmentedControl`)가 위,
+프리미티브 7종이 아래다.
 
 ---
 

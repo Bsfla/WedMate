@@ -193,11 +193,15 @@ export function QuickAddSheet({
         )}
       </Field>
 
-      {/* 세그먼트·칩은 자기 `label`로 이미 접근성 이름을 갖는다. Field는 여기서
-          라벨의 **생김새와 간격**만 맡는다 — 화면마다 caption 라벨을 손으로 적지 않기 위함. */}
+      {/* 세그먼트는 자기 `label`로 이미 접근성 이름을 갖고, Field는 라벨의 **생김새와 간격**을
+          맡는다 — 화면마다 caption 라벨을 손으로 적지 않기 위함.
+          이전에는 렌더 프롭을 통째로 버려서 세 필드 모두 `id`·`aria-describedby`가 끊겨
+          있었다. 지금은 그대로 내려보낸다(SegmentedControl이 통로를 받는다). */}
       <Field id="quick-payer" label="결제자">
-        {() => (
+        {(control) => (
           <SegmentedControl
+            describedBy={control["aria-describedby"]}
+            id={control.id}
             label="결제자"
             onChange={setPayer}
             options={PAYER_OPTIONS}
@@ -208,8 +212,10 @@ export function QuickAddSheet({
       </Field>
 
       <Field id="quick-method" label="수단">
-        {() => (
+        {(control) => (
           <SegmentedControl
+            describedBy={control["aria-describedby"]}
+            id={control.id}
             label="결제수단"
             onChange={setMethod}
             options={METHOD_OPTIONS}
@@ -219,8 +225,10 @@ export function QuickAddSheet({
       </Field>
 
       <Field id="quick-stage" label="단계">
-        {() => (
+        {(control) => (
           <SegmentedControl
+            describedBy={control["aria-describedby"]}
+            id={control.id}
             label="결제단계"
             onChange={setStage}
             options={STAGE_OPTIONS}

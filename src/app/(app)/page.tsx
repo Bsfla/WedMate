@@ -18,8 +18,8 @@ import { PayerChip } from "@/components/money/payer-chip";
 import { StageBadge } from "@/components/money/stage-badge";
 import { Button } from "@/components/ui/button";
 import { majorColor } from "@/lib/domain";
-import { formatDday, formatPercent, formatWon } from "@/lib/format";
-import { MOCK_TODAY, getMockHome, resolveFixtureKey } from "@/lib/mock/fixtures";
+import { formatPercent, formatWon } from "@/lib/format";
+import { getMockHome, resolveFixtureKey } from "@/lib/mock/fixtures";
 
 /**
  * 헤더 부제의 예식일. `dateStyle: "full"`은 "2026년 11월 14일 토요일"이라 길기만 하고,
@@ -34,10 +34,14 @@ export default async function HomePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const home = getMockHome(resolveFixtureKey(params.fixture));
-  const dday = formatDday(home.weddingDate, MOCK_TODAY);
+  const home = await getMockHome(resolveFixtureKey(params.fixture));
+  const { dday } = home;
   const weddingDay = new Date(`${home.weddingDate}T00:00:00Z`);
   const overBudget = home.remainingAfterEstimate < 0;
+
+  // 총 예산을 안 정하고 들어온 사람(온보딩에서 선택 입력). 분모가 없으므로 소진율·남은 예산은
+  // 계산 자체가 성립하지 않는다 — 0%짜리 막대와 음수 잔액을 그리면 그건 정보가 아니라 거짓말이다.
+  const budgetUnset = !home.hasTotalBudget;
 
   // 잔금이 여러 건이면 전부 이어붙인 문장이 배너를 세 줄 넘게 밀어낸다 — 두 건까지만 이름을 쓴다.
   const unpaidPreview =
@@ -95,35 +99,80 @@ export default async function HomePage({
             <div className="flex flex-col gap-1">
               <MoneyText value={home.confirmedSpent} size="display" />
               <p className="text-body-sm text-muted-foreground">
-                전체 예산 {formatWon(home.totalBudget)} 중{" "}
-                <b className="font-semibold text-foreground">
-                  {formatPercent(home.confirmedSpent, home.totalBudget)}
-                </b>{" "}
-                집행
+                {budgetUnset ? (
+                  "총 예산을 아직 정하지 않아 소진율을 계산할 수 없어요"
+                ) : (
+                  <>
+                    전체 예산 {formatWon(home.totalBudget)} 중{" "}
+                    <b className="font-semibold text-foreground">
+                      {formatPercent(home.confirmedSpent, home.totalBudget)}
+                    </b>{" "}
+                    집행
+                  </>
+                )}
               </p>
             </div>
 
-            <DualProgressBar
-              confirmed={home.confirmedSpent}
-              estimated={home.estimatedSpent}
-              total={home.totalBudget}
-              label="총 예산 소진율"
-            />
+            {/*
+              분모가 없을 때는 막대와 잔액 두 줄을 통째로 뺀다.
+              `ratio()`가 0으로 떨어져 NaN은 안 나지만, 0%짜리 막대는 "아직 안 썼다"로 읽히고
+              `0 − 확정지출`은 예산 초과 경고로 읽힌다 — 둘 다 사실이 아니다.
+              대신 화면에서 유일하게 참인 수치(예상 지출)만 남긴다.
+            */}
+            {budgetUnset ? (
+              home.estimatedSpent > 0 && (
+                <DataRowGroup divided>
+                  <DataRow
+                    hint="결제일이 아직 안 잡힌 건"
+                    label="예상 지출"
+                    tone="muted"
+                    value={home.estimatedSpent}
+                  />
+                </DataRowGroup>
+              )
+            ) : (
+              <>
+                <DualProgressBar
+                  confirmed={home.confirmedSpent}
+                  estimated={home.estimatedSpent}
+                  total={home.totalBudget}
+                  label="총 예산 소진율"
+                />
 
-            <DataRowGroup divided>
-              <DataRow
-                label="남은 예산"
-                tone={home.remaining < 0 ? "warning" : "success"}
-                value={home.remaining}
-              />
-              <DataRow
-                hint={overBudget ? "예산 초과 예상" : undefined}
-                label="예상까지 반영하면"
-                tone={overBudget ? "warning" : "muted"}
-                value={home.remainingAfterEstimate}
-              />
-            </DataRowGroup>
+                <DataRowGroup divided>
+                  <DataRow
+                    label="남은 예산"
+                    tone={home.remaining < 0 ? "warning" : "success"}
+                    value={home.remaining}
+                  />
+                  <DataRow
+                    hint={overBudget ? "예산 초과 예상" : undefined}
+                    label="예상까지 반영하면"
+                    tone={overBudget ? "warning" : "muted"}
+                    value={home.remainingAfterEstimate}
+                  />
+                </DataRowGroup>
+              </>
+            )}
           </Panel>
+
+          {/*
+            미설정은 잘못이 아니라 미완이라 `info` 톤이다(앰버는 조치가 급한 것에만 쓴다).
+            빈 상태와 마찬가지로 다음 행동이 있어야 끝난다 — 지금 실제로 이동 가능한 곳은
+            설정 화면이다. `/settings/wedding`이 붙으면 이 href를 거기로 바꾼다. (→ D-042)
+          */}
+          {budgetUnset && (
+            <WarningBanner
+              action={
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/settings">설정 열기</Link>
+                </Button>
+              }
+              description="설정에서 총 예산을 정하면 소진율과 남은 예산이 이 자리에 계산됩니다"
+              title="총 예산을 아직 정하지 않았어요"
+              tone="info"
+            />
+          )}
 
           {/* 조치가 필요한 경고는 히어로 바로 다음이다 — 목록 아래에 두면 스크롤해야 보인다. */}
           {home.unpaidBalances.length > 0 && (
