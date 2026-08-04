@@ -103,10 +103,10 @@
       project ref를 채웠고 `isSupabaseConfigured`가 true다.
 - [x] **Auth 리다이렉트 URL 등록** (2026-07-31 완료). 비밀번호 방식(D-033)으로 바꾸면서
       당장은 쓰이지 않지만, 카카오 OAuth를 얹을 때 그대로 필요하다.
-- [ ] 🔴 **`Confirm email` 끄기** — Authentication → Sign In / Providers → Email.
-      **지금 켜져 있다** (`GET /auth/v1/settings`의 `mailer_autoconfirm: false`로 확인).
+- [x] **`Confirm email` 끄기** (2026-08-04 완료) — Authentication → Sign In / Providers → Email.
       켜진 채로는 가입해도 세션이 안 생기고 확인 메일이 나가는데, 내장 SMTP 한도 때문에
-      2계정 테스트가 막힌다. (→ D-033)
+      2계정 테스트가 막힌다. 이제 꺼져 있어 **P1 완료 판정 2~4번(2계정 실행 검증)의 마지막
+      선행 조건이 풀렸다.** (→ D-033)
 
 ### 작업 순서
 
