@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Ellipsis, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { CopyField } from "@/components/data/copy-field";
@@ -295,43 +295,23 @@ export function ConfirmSheetDemo() {
 }
 
 /**
- * 카테고리 관리의 행 구조. `ListRow`의 `trailingAction` · `actionLabel`이 실제로 쓰이는 자리다.
+ * 카테고리 관리의 행 구조. `ListRow`의 `titleBadge` · `actionLabel` · 기본 `›`가 쓰이는 자리다.
  *
- * 44px 타깃 둘(↑↓)이 행 버튼 **바깥**에 있고, 행 전체는 편집 시트를 여는 하나의 버튼이다
- * (→ D-066). 첫 행의 ↑와 마지막 행의 ↓는 버튼만 빠지고 `size-11` 자리는 남는다 (→ D-067).
+ * 🔴 **행에는 조작부가 없다** (→ D-075). 이전 버전은 행 우측에 ↑↓ 두 개를 상시로 달고
+ * (`trailingAction`, D-066) `›`를 껐다 — 그 결과 "행이 눌린다"는 신호가 스크린리더
+ * 전용 라벨에만 남았다. 지금은 **소분류 행 = `›`, 그룹 헤더 = `⋯`** 이고 **둘 다 같은
+ * 편집 시트**를 연다 (→ D-076). 순서변경은 형제 목록 전체를 담은 별도 시트로 갔다.
+ *
+ * 중분류 헤더 이름은 `text-foreground`다. `text-muted-foreground`는 `bg-muted`
+ * (#f4f4f5) 위에서 4.40:1로 AA 미달이다 — 토큰 주석의 4.83:1은 **흰 배경 기준**이다.
  */
 export function CategoryRowsDemo() {
   const [log, setLog] = useState("아직 누른 것 없음");
 
-  const arrows = (name: string, canUp: boolean, canDown: boolean) => (
-    <div className="flex shrink-0 items-center gap-2 pl-1">
-      {canUp ? (
-        <Button
-          aria-label={`${name} 위로`}
-          className="text-muted-foreground"
-          onClick={() => setLog(`${name} 위로`)}
-          size="icon"
-          variant="ghost"
-        >
-          <ArrowUp aria-hidden strokeWidth={2} />
-        </Button>
-      ) : (
-        <span aria-hidden className="size-11 shrink-0" />
-      )}
-      {canDown ? (
-        <Button
-          aria-label={`${name} 아래로`}
-          className="text-muted-foreground"
-          onClick={() => setLog(`${name} 아래로`)}
-          size="icon"
-          variant="ghost"
-        >
-          <ArrowDown aria-hidden strokeWidth={2} />
-        </Button>
-      ) : (
-        <span aria-hidden className="size-11 shrink-0" />
-      )}
-    </div>
+  const badge = (
+    <span className="shrink-0 rounded-lg border border-border bg-muted px-2 py-0.5 text-caption text-muted-foreground">
+      보관됨
+    </span>
   );
 
   return (
@@ -339,44 +319,43 @@ export function CategoryRowsDemo() {
       <Panel flush>
         <ul>
           <li className="border-b border-border/60">
-            <div className="flex items-center bg-muted pr-4">
-              <button
-                aria-label="중분류 예식 이름 변경 · 보관"
-                className="flex min-h-12 min-w-0 flex-1 items-center gap-2 px-4 py-2 text-left active:bg-border/70"
+            {/* 그룹 헤더의 이름은 **라벨이지 버튼이 아니다** — 그룹 제목이 눌리는 관례가
+                없어서 버튼으로 두면 소분류 행보다 더 안 눌려 보인다. 조작은 `⋯`가 진다. */}
+            <div className="flex min-h-12 items-center bg-muted pr-1.5 pl-4">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 py-2">
+                <span className="truncate text-body-sm font-bold">예식</span>
+              </div>
+              <Button
+                aria-label="중분류 예식 편집"
+                className="shrink-0 text-muted-foreground"
                 onClick={() => setLog("중분류 예식 편집")}
-                type="button"
+                size="icon"
+                variant="ghost"
               >
-                <span className="truncate text-body-sm font-bold text-muted-foreground">예식</span>
-              </button>
-              {arrows("예식", false, true)}
+                <Ellipsis aria-hidden strokeWidth={2} />
+              </Button>
             </div>
 
             <ul>
               <ListRow
                 actionLabel="소분류 웨딩홀 대관 이름 변경 · 보관"
-                chevron={false}
-                className="pr-4 pl-4"
+                className="pl-4"
                 onClick={() => setLog("소분류 웨딩홀 대관 편집")}
                 title="웨딩홀 대관"
-                trailingAction={arrows("웨딩홀 대관", false, true)}
               />
+              {/* 배지는 `meta`(제목 아래)가 아니라 `titleBadge`(제목 옆)다 —
+                  `meta`에 두면 이 행만 56 → 66px로 자라 세로 리듬이 쪼개진다. */}
               <ListRow
                 actionLabel="소분류 폐백 이름 변경 · 보관"
-                chevron={false}
-                className="pr-4 pl-4"
-                meta={
-                  <span className="shrink-0 rounded-lg border border-border bg-muted px-2 py-0.5 text-caption text-muted-foreground">
-                    보관됨
-                  </span>
-                }
+                className="pl-4"
                 onClick={() => setLog("소분류 폐백 편집")}
                 title={<span className="text-muted-foreground">폐백</span>}
-                trailingAction={arrows("폐백", false, false)}
+                titleBadge={badge}
               />
               <li>
                 <button
                   aria-label="예식에 소분류 추가"
-                  className="flex min-h-12 w-full items-center gap-2 py-2 pr-4 pl-8 text-left text-body-sm font-medium text-muted-foreground active:bg-muted"
+                  className="flex min-h-12 w-full items-center gap-2 py-2 pr-4 pl-8 text-left text-body font-medium active:bg-muted"
                   onClick={() => setLog("소분류 추가")}
                   type="button"
                 >
@@ -388,6 +367,45 @@ export function CategoryRowsDemo() {
           </li>
         </ul>
       </Panel>
+
+      {/* 순서 시트의 한 행. 최대 6행이라 스크롤이 없고, 재배열은 로컬이라 즉시 움직인다.
+          첫 행의 ↑는 버튼만 빠지고 `size-11` 자리는 남는다 — D-067의 원칙은 폐기가
+          아니라 이 시트로 이사했다. */}
+      <ul className="border-y border-border">
+        <li className="flex min-h-14 items-center gap-2 border-b border-border/60 pr-2 pl-4">
+          <span aria-hidden className="num w-5 shrink-0 text-body-sm font-medium text-muted-foreground">
+            1
+          </span>
+          <span className="min-w-0 flex-1 truncate text-body">웨딩홀 대관</span>
+          <span aria-hidden className="size-11 shrink-0" />
+          <Button
+            aria-label="웨딩홀 대관 아래로"
+            className="shrink-0 text-muted-foreground"
+            onClick={() => setLog("웨딩홀 대관 아래로")}
+            size="icon"
+            variant="ghost"
+          >
+            <ArrowDown aria-hidden strokeWidth={2} />
+          </Button>
+        </li>
+        <li className="flex min-h-14 items-center gap-2 pr-2 pl-4">
+          <span aria-hidden className="num w-5 shrink-0 text-body-sm font-medium text-muted-foreground">
+            2
+          </span>
+          <span className="min-w-0 flex-1 truncate text-body">폐백</span>
+          <Button
+            aria-label="폐백 위로"
+            className="shrink-0 text-muted-foreground"
+            onClick={() => setLog("폐백 위로")}
+            size="icon"
+            variant="ghost"
+          >
+            <ArrowUp aria-hidden strokeWidth={2} />
+          </Button>
+          <span aria-hidden className="size-11 shrink-0" />
+        </li>
+      </ul>
+
       <p className="px-0.5 text-caption text-muted-foreground">눌린 것: {log}</p>
     </div>
   );

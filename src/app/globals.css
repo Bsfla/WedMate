@@ -150,7 +150,11 @@
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
   --muted: #f4f4f5;
-  --muted-foreground: #71717a; /* 4.83:1 */
+  /* 🔴 4.83:1은 **흰 배경(--card) 기준**이다. 면이 바뀌면 같이 내려간다 —
+     --background(#f6f5f6) 위 4.44:1 · --muted(#f4f4f5) 위 4.40:1로 둘 다 AA 미달이다.
+     15px 이하 본문을 `bg-muted`/`bg-background` 위에 얹을 때는 `text-foreground`를 쓴다
+     (#18181b on #f4f4f5 = 16.12:1). 배경을 안 밝힌 대비 수치가 재발의 원인이었다. (→ D-075) */
+  --muted-foreground: #71717a; /* 4.83:1 (on --card #ffffff) */
   --accent: #f4f4f5;
   --accent-foreground: #18181b;
   --destructive: #e11d48;
