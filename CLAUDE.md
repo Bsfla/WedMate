@@ -114,6 +114,13 @@ P2~P5는 그 함수 본문만 Supabase 쿼리로 갈아끼우고 화면 코드�
 **부분 UNIQUE 인덱스 술어에 `now()`를 쓸 수 없다.** IMMUTABLE 식만 허용된다.
 "살아 있는 코드 1개"는 `expires_at > now()`가 아니라 `revoked_at IS NULL`로 건다. (→ D-029)
 
+**🔴 `.update()` · `.delete()`에 `.eq()`를 빠뜨리지 않는다 — RLS는 WHERE 절이 아니다.**
+PostgREST가 필터 없는 UPDATE/DELETE를 **정책과 무관하게** 거부한다:
+`{"code":"21000","message":"UPDATE requires a WHERE clause"}`.
+"RLS가 이미 내 스페이스로 좁히니 `.eq()`는 불필요하다"는 추론이 `/settings/wedding`의 저장을
+**한 번도 동작하지 않게** 만들었다. RLS는 "무엇이 보이는가"를, 안전장치는 "요청이 대상을
+지목했는가"를 본다 — 층이 다르다. `.eq()`를 붙여도 남의 행은 여전히 RLS가 막는다(0행). (→ D-078)
+
 **`src/lib/supabase/types.ts`는 손으로 고치지 않는다.** `npm run db:types`의 출력물이다.
 스키마를 바꿨으면 반드시 다시 돌린다 — 안 그러면 없는 컬럼을 타입 오류 없이 참조하게 된다.
 
@@ -128,7 +135,32 @@ npm run build        # 무경고여야 함
 
 npm run db:reset     # 로컬 Postgres 초기화 + 마이그레이션 재적용 (Docker 필요)
 npm run db:types     # 스키마 → src/lib/supabase/types.ts 재생성
+
+npm run verify:p1    # P1 완료 판정 22개를 로컬 스택에 실제 HTTP로 검증 (Docker 필요)
+npm run test:e2e     # 브라우저 29개 — 375×812 라이트·다크 (Docker 필요)
+npm run test:e2e:ui  # 같은 것을 Playwright UI로
 ```
+
+**셋이 보는 층이 다르다. 겹치지 않는다.**
+
+| | 무엇을 보나 | 못 보는 것 |
+|---|---|---|
+| `lint` · `build` | 타입·문법 | 요청이 실제로 통하는지 |
+| `verify:p1` | 스키마·RLS·RPC — **실제 HTTP** | 그 값이 화면에 나타나는지 |
+| `test:e2e` | 렌더된 화면 — 대비·터치타깃·가로스크롤·콘솔 | 보기 좋은지 |
+
+`/settings/wedding` 저장이 만들어진 날부터 안 됐는데 **빌드는 계속 무경고**였다 (→ D-078).
+중분류 헤더가 라이트에서 4.40:1(AA 미달)이었는데 **72장을 육안으로 넘겨보고도** 못 봤다 (→ D-075).
+스키마·RLS·RPC를 건드렸으면 `verify:p1`을, 화면을 건드렸으면 `test:e2e`를 돌린다.
+
+🔴 **둘 다 로컬 스택에만 쏜다** — 계정과 커플을 만들고 지우기 때문이다.
+`API_URL`이 `127.0.0.1`이 아니면 즉시 멈춘다. e2e는 `.env.local`(호스팅 프로젝트)을
+`webServer.env`로 덮어써서 띄운다.
+
+🔴 **검사를 추가하면 "이게 그 버그를 잡았을까"를 물어라.** 일부러 결함을 되돌려
+붉은 불이 뜨는지 확인한다 — 그렇게 해서 dark 프로젝트가 라이트를 한 번 더 돌리고 있던 것
+(`colorScheme`은 `.dark` 클래스를 안 켠다)과, 터치 타깃 검사가 0개를 재고도 통과할 수 있던 것을
+찾았다. **초록 불이 늘어나는 것과 검증이 늘어나는 것은 다르다.**
 
 **스키마는 `supabase/migrations/`가 진실이다.** 대시보드에서 직접 고치지 않는다.
 설계 근거는 [docs/erd.md](docs/erd.md), 파일별 역할은 그 문서 5절에 있다.

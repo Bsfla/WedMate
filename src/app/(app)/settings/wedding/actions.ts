@@ -7,6 +7,7 @@ import { MAX_GUEST_GUARANTEE, MAX_TOTAL_BUDGET, MAX_UNIT_AMOUNT } from "@/lib/co
 import { formatFullDate } from "@/lib/format";
 import { unexpectedMessage } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCoupleId } from "@/lib/supabase/space";
 
 import {
   WEDDING_INFO_COPY,
@@ -101,6 +102,17 @@ export async function updateWeddingInfoAction(
   // 세션이 끊긴 것이라 이 화면에서 사용자가 할 수 있는 일이 없다. 문구를 띄우지 않는다.
   if (!user) redirect("/login");
 
+  /* 🔴 **RLS는 WHERE 절을 대신하지 못한다.** 이 자리에 원래 `.eq()`가 없었고, 근거는
+     "RLS가 이미 내 스페이스로 좁힌다"였다. 그런데 PostgREST는 필터 없는 UPDATE를
+     **정책과 무관하게** 거부한다 — 실수로 테이블 전체를 갈아엎는 것을 막는 안전장치다:
+
+       {"code":"21000","message":"UPDATE requires a WHERE clause"}
+
+     그래서 이 화면의 저장은 한 번도 성공한 적이 없었다. RLS는 "무엇이 보이는가"를 정하고
+     안전장치는 "요청이 대상을 지목했는가"를 본다 — 층이 다르다. (→ D-078) */
+  const coupleId = await getCurrentCoupleId();
+  if (!coupleId) return { status: "error", alert: WEDDING_INFO_COPY.noCouple };
+
   const { data, error } = await supabase
     .from("couples")
     .update({
@@ -110,8 +122,9 @@ export async function updateWeddingInfoAction(
       avg_gift_amount: avgGiftAmount,
       meal_cost_per_head: mealCostPerHead,
     })
-    // RLS가 이미 내 스페이스로 좁힌다. `select`는 **몇 행이 바뀌었는지** 보려고 붙인다 —
-    // 스페이스가 없으면 UPDATE가 조용히 0행으로 끝나고 오류도 안 난다.
+    .eq("id", coupleId)
+    // `select`는 **몇 행이 바뀌었는지** 보려고 붙인다 — 그 사이 스페이스에서 나갔으면
+    // RLS가 0행으로 만들고 오류는 안 난다.
     .select("id");
 
   if (error) {
