@@ -34,8 +34,9 @@ export const CATEGORY_ACTION_IDLE: CategoryActionState = { status: "idle" };
 export const CATEGORY_COPY = {
   title: "카테고리 관리",
 
-  /* ── 상단 ── */
-  hint: "카테고리를 누르면 이름을 바꾸거나 보관할 수 있어요.",
+  /* ── 상단 ──
+     🔴 "카테고리를 누르면 이름을 바꿀 수 있어요" 같은 안내문을 두지 않는다.
+     **글로 설명해야 하는 어포던스는 실패한 어포던스다** — 행의 `›`가 그 일을 한다. (→ D-075) */
   showArchived: "보관 항목 표시",
   archivedCount: (n: number) => `보관 ${n}개`,
   majorMeta: (mids: number, minors: number) => `중 ${mids} · 소 ${minors}`,
@@ -45,6 +46,34 @@ export const CATEGORY_COPY = {
   moveUp: (name: string) => `${name} 위로`,
   moveDown: (name: string) => `${name} 아래로`,
   editAria: (levelLabel: string, name: string) => `${levelLabel} ${name} 이름 변경 · 보관`,
+
+  /* ── 편집 시트 진입 ──
+     🔴 대·중·소가 **같은 시트 하나**를 연다. 계층 차이는 시트 안에서 줄이 나타나고
+     사라지는 것으로만 표현한다 — 보관이 소분류에선 버튼, 중분류에선 메뉴 항목이면
+     같은 동작을 계층마다 다시 배워야 한다. (→ D-076) */
+  moreAria: (levelLabel: string, name: string) => `${levelLabel} ${name} 편집`,
+  menuReorder: (childLabel: string) => `${childLabel} 순서 변경`,
+  menuReorderMeta: (n: number) => `${n}개`,
+
+  /* ── 대분류가 4개로 고정인 이유 ──
+     화면에 "+ 대분류 추가"가 없는 것만으로는 **못 찾는 것과 없는 것을 구분할 수 없다.**
+     DB가 세 경로 모두 막지만(새 키 CHECK · 기존 키 UNIQUE · 키 없음 CHECK) 사용자는
+     그 사실을 알 방법이 없어 계속 찾게 된다. 없는 것은 설명이 아니다. */
+  majorFixedNote:
+    "대분류는 결혼식 · 신혼여행 · 혼수 · 신혼집 4개로 고정돼요. 예산 배분과 결산이 이 4개를 기준으로 계산돼서 늘리거나 줄일 수 없어요. 우리 예산에만 있는 항목은 중분류나 소분류로 넣어 주세요.",
+  majorFixedHint: "대분류는 4개로 고정이라 이름만 바꿀 수 있어요.",
+
+  /* ── 순서 시트 ──
+     형제 목록 **전체**를 담기 때문에 이동이 시트 안에서 그대로 보인다. 최대 6행이라
+     스크롤이 없고, 로컬 재배열이라 반응이 즉시다 — 목록에서 ↑↓를 누를 때 생기던
+     "누를 때마다 손가락 아래 항목이 바뀌는" 조준 문제가 구조적으로 사라진다. (→ D-075) */
+  reorderTitle: (childLabel: string) => `${childLabel} 순서 변경`,
+  reorderPositionAria: (index: number, total: number, name: string) =>
+    `${name}, ${total}개 중 ${index}번째`,
+  reorderArchivedNote: "보관된 항목은 언제나 맨 뒤예요.",
+  reorderSave: "순서 저장",
+  reorderSaving: "저장하는 중…",
+  reorderUnchanged: "순서가 그대로예요.",
   addMinor: "소분류 추가",
   addMinorAria: (midName: string) => `${midName}에 소분류 추가`,
   addMid: "중분류 추가",
@@ -59,9 +88,11 @@ export const CATEGORY_COPY = {
   midsAllArchived: (n: number) =>
     `중분류 ${n}개가 모두 보관돼 있어요. 위에서 '보관 항목 표시'를 켜면 보여요.`,
 
-  /* ── 추가 · 이름 변경 시트 ── */
+  /* ── 추가 · 편집 시트 ──
+     편집 시트의 제목은 **카테고리 이름 자체**이고 부제가 `path`다. 40행짜리 트리에서
+     헷갈리는 것은 동작이 아니라 대상이라, "소분류 이름 변경" 같은 제목을 쓰면
+     *무엇을* 고치는지가 부제로 밀린다. 동작은 시트의 sr-only 설명이 낭독한다. (→ D-076) */
   addTitle: (levelLabel: string) => `${levelLabel} 추가`,
-  renameTitle: (levelLabel: string) => `${levelLabel} 이름 변경`,
   path: (parts: string[]) => parts.join(" › "),
   nameLabel: "이름",
   namePlaceholder: "예: 본식 DVD",
@@ -88,15 +119,19 @@ export const CATEGORY_COPY = {
   /* ── 알림(귀속 필드 없음) ── */
   saveFailed: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
   notFound: "이미 없는 항목이에요. 화면을 새로고침하면 최신 목록이 보여요.",
-  reorderFailed: "순서를 바꾸지 못했어요. 잠시 뒤 다시 눌러 주세요.",
   /**
    * 🔴 "바뀌지 않았어요"라고 말하지 않는다. 순서변경은 형제 전체를 1..N으로 다시 매기므로
    * 부분 실패해도 DB는 움직여 있다. 화면에 **지금 저장된 순서**를 보여주고 그렇게 말해야
    * 다음 조작이 복구가 된다.
    */
-  reorderStale: "다른 기기에서 순서가 바뀌었어요. 화면을 새로고침하면 최신 순서가 보여요.",
-  reorderAtTop: "이미 맨 위예요. 화면을 새로고침하면 최신 순서가 보여요.",
-  reorderAtBottom: "이미 맨 아래예요. 화면을 새로고침하면 최신 순서가 보여요.",
+  reorderPartial: "일부만 저장됐어요. 지금 목록이 저장된 순서예요. 이어서 다시 옮겨 주세요.",
+  /**
+   * 시트를 여는 사이 상대가 항목을 추가·보관했다. 내가 보낸 목록이 더 이상 그 그룹이 아니다.
+   * 🔴 "시트를 닫고 다시 열면"이라고 쓰지 않는다 — 이 실패는 **시트를 닫으면서** 뜨므로
+   * 이미 지나간 안내가 된다. 사용자가 보고 있는 것은 갱신된 목록이다.
+   */
+  reorderStale:
+    "그 사이 다른 기기에서 항목이 바뀌었어요. 지금 목록이 최신 순서예요. 다시 옮겨 주세요.",
   archiveFailed: "보관하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
   restoreFailed: "다시 꺼내지 못했어요. 잠시 뒤 다시 시도해 주세요.",
 
@@ -133,6 +168,15 @@ export const CATEGORY_COPY = {
   loadFailedTitle: "카테고리를 불러오지 못했어요",
   loadFailedBody:
     "화면을 새로고침하면 다시 시도해요. 계속 안 되면 잠시 뒤에 다시 들어와 주세요.",
+  /**
+   * 🔴 조회 실패와 **다른 문구를 쓴다.** "불러오지 못했어요"는 일시적 실패를 뜻해서,
+   * 실제로는 데이터가 비어 있는데 그렇게 말하면 사용자가 새로고침만 반복한다.
+   * 정상 경로로는 도달할 수 없다 — `create_couple()`이 같은 트랜잭션에서 시드를 깐다.
+   * 그래도 생겼다면 원인이 **조회가 아니라 생성**에 있으므로 그렇게 말해야 한다.
+   */
+  incompleteTitle: "기본 카테고리가 없어요",
+  incompleteBody:
+    "결혼식 · 신혼여행 · 혼수 · 신혼집 4개가 만들어져 있어야 하는데 보이지 않아요. 스페이스를 만들 때 문제가 있었던 것 같아요. 화면을 새로고침해도 같다면 알려 주세요.",
   unconfiguredBody:
     "Supabase가 연결되지 않은 환경이에요. 카테고리는 실제 DB가 연결돼야 보여요.",
   backToSettings: "설정으로 돌아가기",

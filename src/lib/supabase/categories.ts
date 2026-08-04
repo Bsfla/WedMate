@@ -40,11 +40,21 @@ export type CategoryTreeResult =
   /** `majors`는 언제나 길이 4다 — 하나라도 못 찾으면 `unavailable`로 간다(아래 주석). */
   | { status: "ok"; majors: MajorCategory[] }
   /**
-   * `reason`을 나누는 이유는 문구가 갈리기 때문이다 — `unconfigured`는 로컬 클론이 목업만으로
-   * 화면을 보는 정상 상태이고, `error`는 사용자가 다시 시도해야 하는 실패다.
-   * `getSpaceContext()`의 `unavailable`과 같은 모양으로 맞췄다 (`space.ts:67-71`).
+   * `reason`을 나누는 이유는 **사용자가 할 수 있는 일이 다르기 때문이다.**
+   *
+   * | reason | 무슨 일 | 사용자가 할 일 |
+   * |---|---|---|
+   * | `unconfigured` | Supabase 미연결(로컬 클론) | 없음 — 정상 상태다 |
+   * | `error` | 쿼리 자체가 실패 | 다시 시도 |
+   * | `incomplete` | **쿼리는 됐는데 대분류 4개가 안 갖춰졌다** | 새로고침해도 같으면 문의 |
+   *
+   * 🔴 `incomplete`를 `error`로 뭉개면 안 된다. "불러오지 못했어요"는 **일시적 실패**를 뜻하는데
+   * 실제로는 데이터가 비어 있는 것이라, 사용자는 새로고침만 반복하게 된다.
+   * 정상 경로로는 도달할 수 없는 상태다 — `couples`에 INSERT하는 곳은 `create_couple()`
+   * 하나뿐이고 그 함수가 같은 트랜잭션에서 시드를 깐다(0007). 그래도 생겼다면 원인이
+   * 조회가 아니라 생성에 있으므로, 그렇게 말해야 한다.
    */
-  | { status: "unavailable"; reason: "unconfigured" | "error" };
+  | { status: "unavailable"; reason: "unconfigured" | "error" | "incomplete" };
 
 type CategoryRow = {
   id: string;
@@ -156,7 +166,7 @@ export const getCategoryTree = cache(async (): Promise<CategoryTreeResult> => {
      * 그대로 잡힌다 — 조회 실패가 유령 데이터를 만드는 경로다. `invite.ts:59`와 같은 판단이라
      * "없음"이 아니라 "못 읽음"으로 돌린다.
      */
-    if (!row) return { status: "unavailable", reason: "error" };
+    if (!row) return { status: "unavailable", reason: "incomplete" };
 
     const mids = (midsByParent.get(row.id) ?? []).sort(compareSiblings);
     for (const mid of mids) {

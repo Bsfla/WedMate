@@ -35,6 +35,14 @@ export function CategoryMark({
 type ListRowProps = {
   leading?: ReactNode;
   title: ReactNode;
+  /**
+   * 제목 **옆**에 붙는 짧은 배지("보관됨" 등).
+   *
+   * 🔴 `meta`와 다르다. `meta`는 제목 **아래 줄**이라 배지 하나만 넣어도 행이 56 → 66px로
+   * 자란다 — 목록에서 배지가 붙은 행만 키가 달라져 세로 리듬이 두 종류로 쪼개진다.
+   * 이 슬롯은 제목의 `truncate` **바깥**이라 이름이 길어도 배지는 잘리지 않는다. (→ D-075)
+   */
+  titleBadge?: ReactNode;
   /** 제목 아래 칩·배지 줄 */
   meta?: ReactNode;
   /** 오른쪽 위 (보통 금액) */
@@ -53,15 +61,6 @@ type ListRowProps = {
    * "소분류 폐백 이름 변경 · 보관"처럼 동작까지 말해 준다.
    */
   actionLabel?: string;
-  /**
-   * 행 **오른쪽 바깥**에 붙는 조작부(↑↓ 버튼 등).
-   *
-   * 🔴 `trailing`과 다르다. `trailing`은 행 버튼 **안**이라 버튼 안에 버튼을 넣을 수 없다 —
-   * 카테고리 관리가 "행 전체 = 편집 시트 + 우측 ↑↓"를 만들려면 조작부가 인터랙티브 요소
-   * 바깥에 있어야 한다. 이 슬롯을 주면 `<li>`가 flex가 되고 행 버튼은 `flex-1`이 된다.
-   * 좌우 패딩은 행 버튼(`px-4`)이 아니라 `className`으로 `<li>`에 준다.
-   */
-  trailingAction?: ReactNode;
   /** 이동을 뜻하는 › 표식. 기본값은 "이동 가능한데 오른쪽에 금액이 없을 때". */
   chevron?: boolean;
   className?: string;
@@ -79,6 +78,7 @@ const ROW = "flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left";
 export function ListRow({
   leading,
   title,
+  titleBadge,
   meta,
   trailing,
   trailingCaption,
@@ -86,7 +86,6 @@ export function ListRow({
   href,
   onClick,
   actionLabel,
-  trailingAction,
   chevron,
   className,
 }: ListRowProps) {
@@ -97,9 +96,12 @@ export function ListRow({
     <>
       {leading}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className={cn("truncate text-body font-medium", estimated && "text-muted-foreground")}>
-          {title}
-        </p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className={cn("truncate text-body font-medium", estimated && "text-muted-foreground")}>
+            {title}
+          </p>
+          {titleBadge}
+        </div>
         {meta && <div className="flex flex-wrap items-center gap-1.5">{meta}</div>}
       </div>
       {(trailing || trailingCaption) && (
@@ -118,8 +120,6 @@ export function ListRow({
 
   const interactiveClass = cn(
     ROW,
-    // 조작부가 오른쪽에 따로 붙으면 행 버튼은 남은 폭을 차지한다.
-    trailingAction && "min-w-0 flex-1",
     "transition-colors active:bg-muted",
     "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
   );
@@ -129,7 +129,7 @@ export function ListRow({
       className={cn(
         "border-b border-border/60 last:border-b-0",
         estimated && "hatch-estimate",
-        trailingAction ? "flex items-center" : !interactive && ROW,
+        !interactive && ROW,
         className,
       )}
     >
@@ -141,12 +141,9 @@ export function ListRow({
         <button aria-label={actionLabel} className={interactiveClass} onClick={onClick} type="button">
           {body}
         </button>
-      ) : trailingAction ? (
-        <div className={cn(ROW, "min-w-0 flex-1")}>{body}</div>
       ) : (
         body
       )}
-      {trailingAction}
     </li>
   );
 }

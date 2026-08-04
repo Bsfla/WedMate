@@ -36,20 +36,26 @@ export default async function CategoriesPage() {
      그리면 사용자는 삭제됐다고 읽고 다시 만들려 한다. 실제로는 살아 있어서 예산·결산에는
      그대로 잡히므로, 조회 실패가 유령 데이터를 만드는 경로가 된다. */
   if (result.status !== "ok") {
+    /* 세 갈래를 한 문구로 뭉개지 않는다 — 사용자가 할 수 있는 일이 다르다.
+       특히 `incomplete`("쿼리는 됐는데 대분류가 없다")를 "불러오지 못했어요"로 말하면
+       일시적 실패로 읽혀 새로고침만 반복하게 된다. */
+    const incomplete = result.reason === "incomplete";
     return (
       <Screen header={header}>
         <ErrorState
           description={
             result.reason === "unconfigured"
               ? CATEGORY_COPY.unconfiguredBody
-              : CATEGORY_COPY.loadFailedBody
+              : incomplete
+                ? CATEGORY_COPY.incompleteBody
+                : CATEGORY_COPY.loadFailedBody
           }
           secondaryAction={
             <Button asChild size="sm" variant="secondary">
               <Link href="/settings">{CATEGORY_COPY.backToSettings}</Link>
             </Button>
           }
-          title={CATEGORY_COPY.loadFailedTitle}
+          title={incomplete ? CATEGORY_COPY.incompleteTitle : CATEGORY_COPY.loadFailedTitle}
         />
       </Screen>
     );

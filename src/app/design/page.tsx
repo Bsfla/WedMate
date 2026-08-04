@@ -599,8 +599,8 @@ export default function DesignPage() {
           </Cell>
 
           <Cell
-            name="data/list-row — trailingAction"
-            caption="행 전체 = 편집 시트 / 우측 ↑↓ = 순서 (D-066 · D-067)"
+            name="data/list-row — titleBadge · 카테고리 트리"
+            caption="행 = › · 그룹 헤더 = ⋯ · 순서는 별도 시트 (D-075 · D-076)"
           >
             <CategoryRowsDemo />
           </Cell>

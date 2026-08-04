@@ -231,70 +231,79 @@ export async function renameCategoryAction(
 /* ──────────────────────────────────────────────────────────── 순서 변경 */
 
 /**
- * 형제 안에서 한 칸 이동.
+ * 형제 그룹의 순서를 **한 번에** 저장한다.
  *
- * 🔴 **두 행의 `sort_order`를 맞바꾸지 않는다.** `0002:30`의 인덱스가 비-UNIQUE라 형제 둘이
- * 같은 값을 가질 수 있고, 그때 swap은 **무동작**이 된다 — 사용자는 ↑를 눌러도 아무 일도
- * 일어나지 않는 화면을 본다. 대신 **형제 전체를 1..N으로 다시 매긴다.** 재번호는 그 자체가
- * 복구 동작이라, 중복·구멍·이전 부분 실패가 다음 한 번의 조작으로 저절로 정상화된다.
+ * 이전에는 한 칸씩 옮기는 `moveCategoryAction`이었고 목록의 각 행에 ↑↓가 붙어 있었다.
+ * 실사용에서 그게 무너졌다 — **순서변경은 y를 바꾸는 동작이라, 한 번 누르면 손가락 아래에
+ * 다른 항목의 화살표가 들어온다.** 연타하면 엉뚱한 항목이 움직인다. 그래서 조작을 형제
+ * 목록 전체를 담은 시트로 옮기고, 시트 안에서 로컬로 재배열한 결과를 한 번에 받는다. (→ D-075)
  *
- * 정렬은 반드시 `compareSiblings`(읽기 경로와 **같은 함수**)를 쓴다. 다른 비교자를 쓰면
- * 화살표가 눈에 보인 곳이 아닌 데로 항목을 옮긴다.
+ * 🔴 **`sort_order`를 맞바꾸지 않는다.** `0002:30`의 인덱스가 비-UNIQUE라 형제 둘이 같은 값을
+ * 가질 수 있고, 그때 swap은 **무동작**이 된다. 대신 **형제 전체를 1..N으로 다시 매긴다.**
+ * 재번호는 그 자체가 복구 동작이라, 중복·구멍·이전 부분 실패가 다음 저장으로 정상화된다. (→ D-069)
  *
  * 트랜잭션이 없어 부분 실패가 남을 수 있다. 그래도 실패 시에도 `revalidatePath`를 부른다 —
  * 화면이 DB의 실제 상태를 보여줘야 다음 조작이 복구가 된다.
  */
-export async function moveCategoryAction(
+export async function reorderSiblingsAction(
   _prev: CategoryActionState,
   formData: FormData,
 ): Promise<CategoryActionState> {
-  const categoryId = String(formData.get("categoryId") ?? "").trim();
-  const direction = String(formData.get("direction") ?? "");
-  if (!categoryId || (direction !== "up" && direction !== "down")) {
-    return alertFail(categoryId || undefined, CATEGORY_COPY.reorderFailed);
+  const parentId = String(formData.get("parentId") ?? "").trim();
+  const level = toLevel(String(formData.get("level") ?? ""));
+  const orderedIds = String(formData.get("orderedIds") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (!parentId || (level !== "mid" && level !== "minor") || orderedIds.length === 0) {
+    return alertFail(parentId || undefined, CATEGORY_COPY.reorderPartial);
   }
 
   const supabase = await requireClient();
-  // parent_id·level의 출처는 **DB지 FormData가 아니다.** 위조된 parentId를 믿으면
-  // 남의 그룹을 재번호할 수 있다(RLS가 커플은 막지만 그룹은 안 막는다).
-  const target = await readTarget(supabase, categoryId);
-  if (!target) return alertFail(categoryId, CATEGORY_COPY.notFound);
-
-  // 대분류는 순서변경 UI가 없다 — 표시 순서가 `MAJORS` 고정이라 옮겨도 화면이 안 바뀐다.
-  if (target.level === "major" || target.is_archived) {
-    return alertFail(categoryId, CATEGORY_COPY.reorderFailed);
+  /* 부모의 단계는 **DB에서 읽는다.** FormData의 `level`은 위조되므로 검증 재료로만 쓴다 —
+     이게 없으면 남의 그룹 id를 실어 보내 재번호할 수 있다(RLS는 커플만 막지 그룹은 안 막는다). */
+  const parent = await readTarget(supabase, parentId);
+  const expectedParentLevel = level === "mid" ? "major" : "mid";
+  if (!parent || parent.level !== expectedParentLevel) {
+    return alertFail(parentId, CATEGORY_COPY.notFound);
   }
 
-  const { data: siblings, error: siblingError } = await readSiblings(supabase, target.parent_id);
-  if (siblingError || !siblings) return alertFail(categoryId, CATEGORY_COPY.reorderFailed);
+  const { data: siblings, error: siblingError } = await readSiblings(supabase, parentId);
+  if (siblingError || !siblings) return alertFail(parentId, CATEGORY_COPY.reorderPartial);
 
-  const sorted = (siblings as SiblingRow[])
-    .map((row) => ({
-      id: row.id,
-      name: row.name,
-      sortOrder: row.sort_order,
-      isArchived: row.is_archived,
-    }))
-    .sort(compareSiblings);
+  const rows = (siblings as SiblingRow[]).map((row) => ({
+    id: row.id,
+    name: row.name,
+    sortOrder: row.sort_order,
+    isArchived: row.is_archived,
+  }));
 
-  /* 보관 항목은 `compareSiblings`가 이미 꼬리로 몰아놨다. 활성 집합이 언제나 접두사라
-     이동은 그 접두사 안에서만 일어난다 — 액션이 "보관 항목 표시" 토글 상태를 알 필요가 없다. */
-  const active = sorted.filter((row) => !row.isArchived);
-  const archived = sorted.filter((row) => row.isArchived);
+  const active = rows.filter((row) => !row.isArchived);
+  const archived = rows.filter((row) => row.isArchived).sort(compareSiblings);
 
-  const index = active.findIndex((row) => row.id === categoryId);
-  if (index === -1) return alertFail(categoryId, CATEGORY_COPY.reorderStale);
+  /* 🔴 클라이언트가 보낸 목록이 **지금의 활성 형제 집합과 정확히 같아야** 한다.
+     시트를 여는 사이 상대가 항목을 추가하거나 보관했다면 내가 보낸 순서는 다른 그룹의 것이다 —
+     그대로 적용하면 새 항목이 순서에서 누락되거나 보관 항목이 활성 구역으로 끌려 올라온다. */
+  const activeIds = new Set(active.map((row) => row.id));
+  const sameSet =
+    orderedIds.length === activeIds.size &&
+    new Set(orderedIds).size === orderedIds.length &&
+    orderedIds.every((id) => activeIds.has(id));
+  if (!sameSet) return alertFail(parentId, CATEGORY_COPY.reorderStale);
 
-  const swapWith = direction === "up" ? index - 1 : index + 1;
-  if (swapWith < 0) return alertFail(categoryId, CATEGORY_COPY.reorderAtTop);
-  if (swapWith >= active.length) return alertFail(categoryId, CATEGORY_COPY.reorderAtBottom);
+  const byId = new Map(active.map((row) => [row.id, row]));
+  const ordered = [
+    ...orderedIds.map((id) => byId.get(id)!),
+    // 보관은 언제나 꼬리다 (→ D-068). 시트는 활성만 다루므로 여기서 이어 붙인다.
+    ...archived,
+  ];
 
-  [active[index], active[swapWith]] = [active[swapWith], active[index]];
-
-  const ordered = [...active, ...archived];
   const changed = ordered
     .map((row, position) => ({ id: row.id, sortOrder: position + 1, previous: row.sortOrder }))
     .filter((row) => row.sortOrder !== row.previous);
+
+  if (changed.length === 0) return { status: "done", categoryId: parentId };
 
   const results = await Promise.all(
     changed.map((row) =>
@@ -302,19 +311,16 @@ export async function moveCategoryAction(
     ),
   );
 
-  // 어느 하나라도 실패하면 순서가 흐트러진 채 남는다. 그래도 화면은 갱신한다 —
-  // 지금 저장된 순서를 봐야 다음 ↑↓ 한 번이 전체를 재번호해 고칠 수 있다.
   revalidatePath("/", "layout");
 
-  const failed = results.find((result) => result.error);
-  if (failed?.error) {
-    return alertFail(
-      categoryId,
-      unexpectedMessage("순서를 바꾸지", failed.error.code || failed.error.message),
-    );
-  }
+  /* 🔴 "일부만 저장됐어요"와 "저장하지 못했어요"를 가른다. 전부 실패했는데(오프라인·세션 만료)
+     "일부만"이라고 말하면 **사용자는 DB가 반쯤 움직였다고 믿고** 목록을 다시 짜맞추려 든다.
+     실제로는 아무것도 안 움직였으니 그냥 다시 시도하면 되는 상황이다. */
+  const failedCount = results.filter((result) => result.error).length;
+  if (failedCount === results.length) return alertFail(parentId, CATEGORY_COPY.saveFailed);
+  if (failedCount > 0) return alertFail(parentId, CATEGORY_COPY.reorderPartial);
 
-  return { status: "done", categoryId };
+  return { status: "done", categoryId: parentId };
 }
 
 /* ──────────────────────────────────────────────────────────── 보관 · 해제 */
