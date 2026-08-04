@@ -47,6 +47,21 @@ type ListRowProps = {
   href?: string;
   /** 넘기면 행 전체가 버튼이 된다 (바텀시트 열기 등). 클라이언트 컴포넌트에서만 쓴다. */
   onClick?: () => void;
+  /**
+   * 행을 눌렀을 때 **무엇이 일어나는지**. 넘기면 행의 접근성 이름이 이걸로 대체된다.
+   * 제목이 곧 대상 이름이라 "폐백, 버튼"으로만 읽히는 자리에 쓴다 —
+   * "소분류 폐백 이름 변경 · 보관"처럼 동작까지 말해 준다.
+   */
+  actionLabel?: string;
+  /**
+   * 행 **오른쪽 바깥**에 붙는 조작부(↑↓ 버튼 등).
+   *
+   * 🔴 `trailing`과 다르다. `trailing`은 행 버튼 **안**이라 버튼 안에 버튼을 넣을 수 없다 —
+   * 카테고리 관리가 "행 전체 = 편집 시트 + 우측 ↑↓"를 만들려면 조작부가 인터랙티브 요소
+   * 바깥에 있어야 한다. 이 슬롯을 주면 `<li>`가 flex가 되고 행 버튼은 `flex-1`이 된다.
+   * 좌우 패딩은 행 버튼(`px-4`)이 아니라 `className`으로 `<li>`에 준다.
+   */
+  trailingAction?: ReactNode;
   /** 이동을 뜻하는 › 표식. 기본값은 "이동 가능한데 오른쪽에 금액이 없을 때". */
   chevron?: boolean;
   className?: string;
@@ -70,6 +85,8 @@ export function ListRow({
   estimated = false,
   href,
   onClick,
+  actionLabel,
+  trailingAction,
   chevron,
   className,
 }: ListRowProps) {
@@ -101,6 +118,8 @@ export function ListRow({
 
   const interactiveClass = cn(
     ROW,
+    // 조작부가 오른쪽에 따로 붙으면 행 버튼은 남은 폭을 차지한다.
+    trailingAction && "min-w-0 flex-1",
     "transition-colors active:bg-muted",
     "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
   );
@@ -110,21 +129,24 @@ export function ListRow({
       className={cn(
         "border-b border-border/60 last:border-b-0",
         estimated && "hatch-estimate",
-        !interactive && ROW,
+        trailingAction ? "flex items-center" : !interactive && ROW,
         className,
       )}
     >
       {href ? (
-        <Link className={interactiveClass} href={href}>
+        <Link aria-label={actionLabel} className={interactiveClass} href={href}>
           {body}
         </Link>
       ) : onClick ? (
-        <button className={interactiveClass} onClick={onClick} type="button">
+        <button aria-label={actionLabel} className={interactiveClass} onClick={onClick} type="button">
           {body}
         </button>
+      ) : trailingAction ? (
+        <div className={cn(ROW, "min-w-0 flex-1")}>{body}</div>
       ) : (
         body
       )}
+      {trailingAction}
     </li>
   );
 }

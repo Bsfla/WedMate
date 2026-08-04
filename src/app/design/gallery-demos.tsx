@@ -1,9 +1,12 @@
 "use client";
 
+import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { CopyField } from "@/components/data/copy-field";
 import { ErrorState } from "@/components/data/error-state";
+import { ListRow } from "@/components/data/list-row";
+import { Panel } from "@/components/data/panel";
 import { CodeInput, INVITE_CODE_HINT } from "@/components/form/code-input";
 import { DateField } from "@/components/form/date-field";
 import { Field } from "@/components/form/field";
@@ -238,7 +241,7 @@ export function CopyFieldDemo() {
  * 스페이스 삭제처럼 cascade로 원장이 사라지는 동작에만 붙인다.
  */
 export function ConfirmSheetDemo() {
-  const [open, setOpen] = useState<"regenerate" | "delete" | null>(null);
+  const [open, setOpen] = useState<"regenerate" | "delete" | "failed" | null>(null);
 
   return (
     <div className="flex w-full flex-wrap gap-2">
@@ -248,6 +251,22 @@ export function ConfirmSheetDemo() {
       <Button onClick={() => setOpen("delete")} size="sm" variant="secondary">
         삭제 확인 — 게이트
       </Button>
+      <Button onClick={() => setOpen("failed")} size="sm" variant="secondary">
+        확인 후 실패
+      </Button>
+
+      {/* 실패해도 닫지 않는다 — 무엇을 확인하던 중이었는지가 시트 안에 남아야 한다. */}
+      <ConfirmSheet
+        action={() => {}}
+        alert="보관하지 못했어요. 잠시 뒤 다시 시도해 주세요."
+        body="'폐백' — 새 지출을 기록할 때 목록에서 빠져요. 이미 기록한 지출은 그대로 남고, 언제든 다시 꺼낼 수 있어요."
+        cancelLabel="그대로 둘게요"
+        confirmLabel="보관할게요"
+        onOpenChange={(next) => setOpen(next ? "failed" : null)}
+        open={open === "failed"}
+        pendingLabel="보관하는 중…"
+        title="소분류를 보관할까요?"
+      />
 
       <ConfirmSheet
         action={() => setOpen(null)}
@@ -271,6 +290,105 @@ export function ConfirmSheetDemo() {
         pendingLabel="삭제하는 중…"
         title="스페이스를 삭제할까요?"
       />
+    </div>
+  );
+}
+
+/**
+ * 카테고리 관리의 행 구조. `ListRow`의 `trailingAction` · `actionLabel`이 실제로 쓰이는 자리다.
+ *
+ * 44px 타깃 둘(↑↓)이 행 버튼 **바깥**에 있고, 행 전체는 편집 시트를 여는 하나의 버튼이다
+ * (→ D-066). 첫 행의 ↑와 마지막 행의 ↓는 버튼만 빠지고 `size-11` 자리는 남는다 (→ D-067).
+ */
+export function CategoryRowsDemo() {
+  const [log, setLog] = useState("아직 누른 것 없음");
+
+  const arrows = (name: string, canUp: boolean, canDown: boolean) => (
+    <div className="flex shrink-0 items-center gap-2 pl-1">
+      {canUp ? (
+        <Button
+          aria-label={`${name} 위로`}
+          className="text-muted-foreground"
+          onClick={() => setLog(`${name} 위로`)}
+          size="icon"
+          variant="ghost"
+        >
+          <ArrowUp aria-hidden strokeWidth={2} />
+        </Button>
+      ) : (
+        <span aria-hidden className="size-11 shrink-0" />
+      )}
+      {canDown ? (
+        <Button
+          aria-label={`${name} 아래로`}
+          className="text-muted-foreground"
+          onClick={() => setLog(`${name} 아래로`)}
+          size="icon"
+          variant="ghost"
+        >
+          <ArrowDown aria-hidden strokeWidth={2} />
+        </Button>
+      ) : (
+        <span aria-hidden className="size-11 shrink-0" />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <Panel flush>
+        <ul>
+          <li className="border-b border-border/60">
+            <div className="flex items-center bg-muted pr-4">
+              <button
+                aria-label="중분류 예식 이름 변경 · 보관"
+                className="flex min-h-12 min-w-0 flex-1 items-center gap-2 px-4 py-2 text-left active:bg-border/70"
+                onClick={() => setLog("중분류 예식 편집")}
+                type="button"
+              >
+                <span className="truncate text-body-sm font-bold text-muted-foreground">예식</span>
+              </button>
+              {arrows("예식", false, true)}
+            </div>
+
+            <ul>
+              <ListRow
+                actionLabel="소분류 웨딩홀 대관 이름 변경 · 보관"
+                chevron={false}
+                className="pr-4 pl-4"
+                onClick={() => setLog("소분류 웨딩홀 대관 편집")}
+                title="웨딩홀 대관"
+                trailingAction={arrows("웨딩홀 대관", false, true)}
+              />
+              <ListRow
+                actionLabel="소분류 폐백 이름 변경 · 보관"
+                chevron={false}
+                className="pr-4 pl-4"
+                meta={
+                  <span className="shrink-0 rounded-lg border border-border bg-muted px-2 py-0.5 text-caption text-muted-foreground">
+                    보관됨
+                  </span>
+                }
+                onClick={() => setLog("소분류 폐백 편집")}
+                title={<span className="text-muted-foreground">폐백</span>}
+                trailingAction={arrows("폐백", false, false)}
+              />
+              <li>
+                <button
+                  aria-label="예식에 소분류 추가"
+                  className="flex min-h-12 w-full items-center gap-2 py-2 pr-4 pl-8 text-left text-body-sm font-medium text-muted-foreground active:bg-muted"
+                  onClick={() => setLog("소분류 추가")}
+                  type="button"
+                >
+                  <Plus aria-hidden className="size-4 shrink-0" strokeWidth={2} />
+                  소분류 추가
+                </button>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </Panel>
+      <p className="px-0.5 text-caption text-muted-foreground">눌린 것: {log}</p>
     </div>
   );
 }

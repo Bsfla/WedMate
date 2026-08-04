@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { FormAlert } from "@/components/form/form-alert";
 import { BottomSheet } from "@/components/layout/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +19,14 @@ type ConfirmSheetProps = {
   pendingLabel: string;
   cancelLabel: string;
   pending?: boolean;
+  /**
+   * 확인을 눌렀는데 실패했을 때의 문구.
+   *
+   * 🔴 실패했다고 시트를 닫지 않는다 — 무엇을 확인하던 중이었는지가 사라진다.
+   * `body`는 `<p>` 안이라 여기에 배너를 끼울 수 없어서 슬롯을 따로 둔다.
+   * 뜨는 순간 포커스를 옮겨 낭독시킨다 (`aria-live`를 쓰지 않는 이유 → D-037).
+   */
+  alert?: string;
   /** `useActionState`의 submit을 그대로 넘긴다. 확인 버튼이 이 폼을 제출한다. */
   action: (formData: FormData) => void;
   /** 액션에 실어 보낼 값. 시트 안에서 폼이 만들어지므로 hidden input으로 넣는다. */
@@ -52,12 +61,18 @@ export function ConfirmSheet({
   pendingLabel,
   cancelLabel,
   pending = false,
+  alert,
   action,
   hidden,
   acknowledge,
 }: ConfirmSheetProps) {
   const [acknowledged, setAcknowledged] = useState(false);
   const acknowledgeId = useId();
+  const alertRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (alert) alertRef.current?.focus();
+  }, [alert]);
 
   function handleOpenChange(next: boolean) {
     if (pending) return;
@@ -97,6 +112,8 @@ export function ConfirmSheet({
       title={title}
     >
       <p className="text-body text-muted-foreground">{body}</p>
+
+      {alert && <FormAlert ref={alertRef}>{alert}</FormAlert>}
 
       {acknowledge && (
         <div className="flex items-center gap-3 rounded-xl border border-border bg-muted px-3.5 py-1">

@@ -1,11 +1,27 @@
 /**
- * 도메인 어휘 — 대분류 · 결제자 · 결제수단 · 결제단계 · 예랑/예신.
+ * 도메인 어휘 — 대분류 · 분류 단계 · 결제자 · 결제수단 · 결제단계 · 예랑/예신.
  *
  * 컴포넌트가 `lib/mock/fixtures`를 직접 import 하지 않게 하려고 따로 뺐다.
  * P1에서 Supabase 스키마가 붙어도 이 어휘는 그대로 살아남는다.
  */
 
 export type MajorKey = "wedding" | "honeymoon" | "household" | "home";
+
+/**
+ * 카테고리 트리의 단계. `categories.level`이 text + CHECK라 생성 타입이 `string`으로 나오므로
+ * 앱 경계에서 이 타입으로 좁힌다 (`lib/supabase/categories.ts`).
+ *
+ * 🔴 `lib/supabase/*`가 아니라 여기 두는 이유 — 설정 › 카테고리의 문구 모듈이 시트 제목
+ * ("중분류 추가")에 이 라벨을 쓰는데, 그 모듈은 클라이언트 컴포넌트가 import한다.
+ * `next/headers`에 닿는 모듈에서 가져오면 번들이 깨진다. (같은 처방 → D-064)
+ */
+export type CategoryLevel = "major" | "mid" | "minor";
+
+export const CATEGORY_LEVEL_LABEL: Record<CategoryLevel, string> = {
+  major: "대분류",
+  mid: "중분류",
+  minor: "소분류",
+};
 /**
  * `other`는 부모님 등 **제3자가 낸 돈**이다. 커플 돈이 아니므로 분담 정산에서 제외된다
  * (`joint`는 커플 공동계좌라 양쪽에 절반씩 귀속된다 — 둘은 다른 개념이다). → D-023

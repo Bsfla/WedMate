@@ -37,7 +37,12 @@ const weekdayFormat = new Intl.DateTimeFormat("ko-KR", { weekday: "short", timeZ
  * 하위 화면이 붙는 항목마다 `href` 한 줄을 채우면 셰브런은 저절로 돌아온다.
  */
 const MENU: { label: string; caption: string; icon: LucideIcon; href?: string }[] = [
-  { label: "카테고리 관리", caption: "대분류 · 중분류 · 소분류", icon: Tags },
+  {
+    label: "카테고리 관리",
+    caption: "대분류 · 중분류 · 소분류",
+    icon: Tags,
+    href: "/settings/categories",
+  },
   { label: "결제수단 관리", caption: "결제자 × 현금 · 카드 · 상품권 · 계좌", icon: CreditCard },
   {
     label: "커플 초대",

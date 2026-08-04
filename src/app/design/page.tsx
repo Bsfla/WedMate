@@ -51,6 +51,7 @@ import {
   AmountInputBudgetDemo,
   AmountInputDemo,
   BottomSheetDemo,
+  CategoryRowsDemo,
   CodeInputDemo,
   ConfirmSheetDemo,
   CopyFieldDemo,
@@ -595,6 +596,13 @@ export default function DesignPage() {
                 }
               />
             </ul>
+          </Cell>
+
+          <Cell
+            name="data/list-row — trailingAction"
+            caption="행 전체 = 편집 시트 / 우측 ↑↓ = 순서 (D-066 · D-067)"
+          >
+            <CategoryRowsDemo />
           </Cell>
 
           <Cell name="data/section-header" caption="위 20px / 아래 8px로 스스로 당겨 붙는다">
