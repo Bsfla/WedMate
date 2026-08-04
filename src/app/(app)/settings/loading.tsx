@@ -34,7 +34,7 @@ export default function SettingsLoading() {
       </Panel>
 
       <SectionHeaderSkeleton />
-      <ListSkeleton rows={5} trailing={false} />
+      <ListSkeleton rows={3} trailing={false} />
 
       <SectionHeaderSkeleton />
       <ListSkeleton leading={false} rows={2} trailing={false} />

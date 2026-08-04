@@ -1,10 +1,8 @@
 import {
   CalendarHeart,
-  CreditCard,
   HeartHandshake,
   LogOut,
   Palette,
-  PiggyBank,
   Tags,
   UserRoundPlus,
   type LucideIcon,
@@ -43,14 +41,15 @@ const MENU: { label: string; caption: string; icon: LucideIcon; href?: string }[
     icon: Tags,
     href: "/settings/categories",
   },
-  { label: "결제수단 관리", caption: "결제자 × 현금 · 카드 · 상품권 · 계좌", icon: CreditCard },
+  /* 「결제수단 관리」·「저축 목표」를 뺐다 (2026-08-05, → D-079).
+     화면을 보류했는데 행만 남겨두면 **눌리지 않는 행**이 된다 — "대분류 추가는 어디서 해?"와
+     같은 종류의 구멍이다(D-074). 만드는 커밋에서 행을 같이 되살린다. */
   {
     label: "커플 초대",
     caption: "초대 코드로 배우자를 같은 스페이스에 연결",
     icon: UserRoundPlus,
     href: "/settings/invite",
   },
-  { label: "저축 목표", caption: "목표액 · 월 납입액 · 계좌", icon: PiggyBank },
   {
     label: "예식 정보",
     /* 총예산을 caption에 넣는다 — 홈의 "총 예산을 아직 정하지 않았어요" 배너에서
