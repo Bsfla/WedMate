@@ -8,9 +8,9 @@ import { Field } from "@/components/form/field";
 import { AmountInput } from "@/components/money/amount-input";
 import { Button } from "@/components/ui/button";
 import { SIDE_LABEL, type Side } from "@/lib/domain";
+import { focusFieldControl } from "@/lib/focus-field";
 
 import { createCoupleAction } from "../actions";
-import { focusFieldControl } from "../focus-field";
 import { FormTop } from "../form-top";
 import { ONBOARDING_COPY, ONBOARDING_IDLE, type OnboardingState } from "../types";
 

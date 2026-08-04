@@ -443,11 +443,18 @@ function fixture(key: FixtureKey): RawFixture {
 type ResolvedFixture = RawFixture & { isLive: boolean };
 
 /**
- * 목업 원장 위에 **예식 정보 3종만** 실데이터를 덮는다.
+ * 목업 원장 위에 **예식 정보 6종 전부** 실데이터를 덮는다. (→ D-065)
  *
- * 최소보증인원 · 평균 축의금 · 1인 식대는 일부러 덮지 않는다 — 하객 화면의 계산식은
- * P5 소관이고, 지금 덮으면 목업 명단(207명)과 실제 보증인원이 섞여 DoD 회귀표의
- * `13명 부족`이 조용히 틀어진다. 원장이 실데이터가 되는 단계에서 같이 넘긴다.
+ * 최소보증인원 · 평균 축의금 · 1인 식대 3종은 D-053에서 일부러 덮지 않았다 —
+ * 그때는 고칠 화면이 없어서 덮어봐야 DB 기본값(200/80,000/70,000)이 목업을 밀어낼 뿐이었다.
+ * `/settings/wedding`이 생겨 사용자가 고칠 수 있게 된 순간 그 판단이 뒤집힌다.
+ * **고친 값이 하객 화면에 안 비치면 설정 화면이 거짓말을 하는 것이다.**
+ *
+ * 🔴 이 함수만 고쳐서는 하객 화면에 닿지 않는다 — `getMockGuests()`가 `fixture()`를
+ * 직접 부르고 있었다. 그쪽도 이 함수를 거치도록 async로 바꿨다.
+ *
+ * 대가: 로그인 + DB 기본값(보증 200) 상태에서 DoD 회귀표의 `13명 부족`이 사라진다
+ * (목업은 220이었다). 회귀 대조는 **로그아웃 상태**이거나 **220을 저장한 계정**에서 한다.
  */
 async function resolveFixture(key: FixtureKey): Promise<ResolvedFixture> {
   const base = fixture(key);
@@ -461,6 +468,9 @@ async function resolveFixture(key: FixtureKey): Promise<ResolvedFixture> {
     coupleName: space.name,
     weddingDate: space.weddingDate,
     totalBudget: space.totalBudget,
+    guestMinGuarantee: space.guestMinGuarantee,
+    avgGiftAmount: space.avgGiftAmount,
+    mealCostPerHead: space.mealCostPerHead,
     isLive: true,
   };
 }
@@ -891,8 +901,18 @@ export type GuestsView = {
   isEmpty: boolean;
 };
 
-export function getMockGuests(key: FixtureKey): GuestsView {
-  const data = fixture(key);
+/**
+ * 🔴 `fixture()`가 아니라 `resolveFixture()`를 부른다 — 보증인원·평균 축의금·1인 식대가
+ * 실데이터로 덮이는 유일한 통로다(→ D-065). 여기를 `fixture()`로 되돌리면 설정에서
+ * 고친 값이 이 화면에만 반영되지 않는다(빌드는 통과한다).
+ *
+ * `?fixture=empty` + 로그인이면 명단이 0명인데 보증인원은 실데이터(기본 200)라
+ * `gap`이 200, `shortfallCost`가 1,400만으로 계산된다. **계산은 맞다** — 보증 200에
+ * 아무도 안 오면 정말 그만큼 문다. 지금은 `isEmpty` 분기가 `EmptyState`로 덮어 안 보일 뿐이니,
+ * 빈 상태를 손볼 때 이 값들이 새어 나오지 않는지 확인한다.
+ */
+export async function getMockGuests(key: FixtureKey): Promise<GuestsView> {
+  const data = await resolveFixture(key);
 
   const guests: GuestView[] = data.guests.map((guest) => {
     const signalCount = guest.signals.filter(Boolean).length;

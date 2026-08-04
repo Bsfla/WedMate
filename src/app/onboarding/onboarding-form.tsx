@@ -14,9 +14,9 @@ import { TextField } from "@/components/form/text-field";
 import { SegmentedControl, type SegmentOption } from "@/components/layout/segmented-control";
 import { Button } from "@/components/ui/button";
 import { SIDE_LABEL, type Side } from "@/lib/domain";
+import { focusFieldControl } from "@/lib/focus-field";
 
 import { redeemInviteAction } from "./actions";
-import { focusFieldControl } from "./focus-field";
 import { FormTop } from "./form-top";
 import {
   MAX_DISPLAY_NAME,

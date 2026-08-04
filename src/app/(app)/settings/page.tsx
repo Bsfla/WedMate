@@ -46,7 +46,14 @@ const MENU: { label: string; caption: string; icon: LucideIcon; href?: string }[
     href: "/settings/invite",
   },
   { label: "저축 목표", caption: "목표액 · 월 납입액 · 계좌", icon: PiggyBank },
-  { label: "예식 정보", caption: "예식일 · 최소보증인원 · 평균 축의금", icon: CalendarHeart },
+  {
+    label: "예식 정보",
+    /* 총예산을 caption에 넣는다 — 홈의 "총 예산을 아직 정하지 않았어요" 배너에서
+       설정 홈을 경유해 오는 사람이 어느 행인지 알아야 한다. */
+    caption: "예식일 · 총예산 · 보증인원 · 축의금",
+    icon: CalendarHeart,
+    href: "/settings/wedding",
+  },
 ];
 
 function MenuIcon({ icon: Icon }: { icon: LucideIcon }) {

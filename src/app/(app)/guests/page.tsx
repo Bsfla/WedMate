@@ -22,11 +22,16 @@ export default async function GuestsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const guests = getMockGuests(resolveFixtureKey(params.fixture));
+  const guests = await getMockGuests(resolveFixtureKey(params.fixture));
 
   // 게이지 눈금은 목표치보다 살짝 크게 잡아 마커가 오른쪽 끝에 붙지 않게 한다.
   const gaugeMax = Math.max(guests.minGuarantee, guests.expectedHeadCount) * 1.14;
   const inProfit = guests.netBeforeShortfall >= 0;
+
+  /* 보증인원 0은 설정 › 예식 정보에서 저장할 수 있는 값이다(보증 없는 홀).
+     그때는 기준선 자체가 없으므로 `Gauge`가 마커를 그리지 않고, **글자에서도 빼야 한다** —
+     "207 / 최소보증 0"은 있지도 않은 기준을 0으로 잘못 세운 것처럼 읽힌다. */
+  const hasGuarantee = guests.minGuarantee > 0;
 
   return (
     <Screen
@@ -71,8 +76,16 @@ export default async function GuestsPage({
                 value={guests.expectedHeadCount}
                 max={gaugeMax}
                 marker={guests.minGuarantee}
-                label={`예상 참석 ${guests.expectedHeadCount}명, 최소보증 ${guests.minGuarantee}명`}
-                caption={`${guests.expectedHeadCount} / 최소보증 ${guests.minGuarantee}`}
+                label={
+                  hasGuarantee
+                    ? `예상 참석 ${guests.expectedHeadCount}명, 최소보증 ${guests.minGuarantee}명`
+                    : `예상 참석 ${guests.expectedHeadCount}명, 최소보증 없음`
+                }
+                caption={
+                  hasGuarantee
+                    ? `${guests.expectedHeadCount} / 최소보증 ${guests.minGuarantee}`
+                    : `${guests.expectedHeadCount}명 · 최소보증 없음`
+                }
               />
             </div>
 
@@ -84,7 +97,7 @@ export default async function GuestsPage({
                 // 보증인원·평균 축의금을 다시 잡는 것 하나뿐이다(설정 › 예식 정보).
                 action={
                   <Button asChild size="sm" variant="outline">
-                    <Link href="/settings">예식 정보 수정</Link>
+                    <Link href="/settings/wedding">예식 정보 수정</Link>
                   </Button>
                 }
               />

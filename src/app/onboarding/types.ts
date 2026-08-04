@@ -47,11 +47,7 @@ export const ONBOARDING_IDLE: OnboardingState = { status: "idle" };
  */
 export const MAX_DISPLAY_NAME = 20;
 
-/**
- * 총 가용예산 상한(1조 미만). `couples.total_budget`이 bigint라 자릿수를 안 막으면
- * `Number`가 정밀도를 잃은 값이 그대로 들어간다. 조용히 잘라내지 않고 **되돌려 말한다**.
- */
-export const MAX_TOTAL_BUDGET = 999_999_999_999;
+/* `MAX_TOTAL_BUDGET`은 `@/lib/couple-limits`로 옮겼다 — 설정 › 예식 정보가 같은 상한을 쓴다. */
 
 /** 화면 문구. "올바르지 않습니다" 류를 쓰지 않는다 — 무엇이 잘못됐고 어떻게 고치는지 쓴다. */
 export const ONBOARDING_COPY = {

@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { MAX_TOTAL_BUDGET } from "@/lib/couple-limits";
 import { rpcCode, unexpectedMessage } from "@/lib/rpc-error";
 import { createClient } from "@/lib/supabase/server";
 
-import { MAX_TOTAL_BUDGET, ONBOARDING_COPY, type OnboardingState } from "./types";
+import { ONBOARDING_COPY, type OnboardingState } from "./types";
 
 /* ⚠️ 이 파일은 `"use server"`다. **async 함수만** export할 수 있다 —
    타입·상수는 전부 `./types`에 있다. */

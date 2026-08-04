@@ -158,17 +158,17 @@ export default async function HomePage({
 
           {/*
             미설정은 잘못이 아니라 미완이라 `info` 톤이다(앰버는 조치가 급한 것에만 쓴다).
-            빈 상태와 마찬가지로 다음 행동이 있어야 끝난다 — 지금 실제로 이동 가능한 곳은
-            설정 화면이다. `/settings/wedding`이 붙으면 이 href를 거기로 바꾼다. (→ D-042)
+            빈 상태와 마찬가지로 다음 행동이 있어야 끝난다 — 총예산을 실제로 고칠 수 있는
+            화면으로 곧장 보낸다. (→ D-042)
           */}
           {budgetUnset && (
             <WarningBanner
               action={
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/settings">설정 열기</Link>
+                  <Link href="/settings/wedding">총 예산 정하기</Link>
                 </Button>
               }
-              description="설정에서 총 예산을 정하면 소진율과 남은 예산이 이 자리에 계산됩니다"
+              description="예식 정보에서 총 예산을 정하면 소진율과 남은 예산이 이 자리에 계산됩니다"
               title="총 예산을 아직 정하지 않았어요"
               tone="info"
             />
